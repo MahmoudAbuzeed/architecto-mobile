@@ -8,7 +8,12 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import {
+  useNavigation,
+  usePreventRemove,
+  useRoute,
+  RouteProp,
+} from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   AppText,
@@ -109,17 +114,10 @@ export function RepSessionScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- run once per mount
   }, []);
 
-  // Grading finished → hand off to Feedback.
-  useEffect(() => {
-    if (phase !== 'done') return;
-    if (result) {
-      navigation.replace('Feedback', { result });
-    } else if (alreadyCompleted) {
-      navigation.goBack(); // Home refetches and shows the completed state.
-    }
-  }, [phase, result, alreadyCompleted, navigation]);
-
-  const confirmClose = useCallback(() => {
+  // Every way out of a live rep — the X, Android hardware back, any pop —
+  // funnels through this guard: blocked while grading, confirmed otherwise.
+  // 'done' lets the Feedback handoff below pass through untouched.
+  usePreventRemove(phase !== 'done', ({ data }) => {
     if (phase === 'submitting') return;
     Alert.alert(
       strings.rep.closeConfirmTitle,
@@ -129,11 +127,21 @@ export function RepSessionScreen() {
         {
           text: strings.rep.closeConfirmLeave,
           style: 'destructive',
-          onPress: () => navigation.goBack(),
+          onPress: () => navigation.dispatch(data.action),
         },
       ],
     );
-  }, [navigation, phase]);
+  });
+
+  // Grading finished → hand off to Feedback.
+  useEffect(() => {
+    if (phase !== 'done') return;
+    if (result) {
+      navigation.replace('Feedback', { result });
+    } else if (alreadyCompleted) {
+      navigation.goBack(); // Home refetches and shows the completed state.
+    }
+  }, [phase, result, alreadyCompleted, navigation]);
 
   const onHoldStart = useCallback(() => {
     void tts.stop();
@@ -186,7 +194,8 @@ export function RepSessionScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Pressable onPress={confirmClose} hitSlop={12}>
+          {/* goBack is intercepted by the usePreventRemove guard above. */}
+          <Pressable onPress={() => navigation.goBack()} hitSlop={12}>
             <CloseIcon size={18} color={theme.textSecondary} />
           </Pressable>
           <MonoText weight="medium" color={theme.textSecondary} style={styles.headerLabel}>
