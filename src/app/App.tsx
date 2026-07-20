@@ -10,9 +10,10 @@ import { useAuthStore } from '@/store/auth.store';
 import { useTheme } from '@/theme/useTheme';
 import { THINKING_QUIPS } from '@/lib/quips';
 
-// TODO(user): paste the real web client ID from GCP before Google sign-in
-// works. Email auth works without it.
-const GOOGLE_WEB_CLIENT_ID = '';
+const GOOGLE_WEB_CLIENT_ID =
+  '1039210066695-k6jimdh5hhrspujn8qt9lnveg890sfc1.apps.googleusercontent.com';
+const GOOGLE_IOS_CLIENT_ID =
+  '1039210066695-76s1ropf1f21mr9qoq4u91cknp4qoge7.apps.googleusercontent.com';
 
 function Bootstrapped() {
   const theme = useTheme();
@@ -50,7 +51,10 @@ export default function App() {
 
   useEffect(() => {
     if (GOOGLE_WEB_CLIENT_ID) {
-      GoogleSignin.configure({ webClientId: GOOGLE_WEB_CLIENT_ID });
+      GoogleSignin.configure({
+        webClientId: GOOGLE_WEB_CLIENT_ID,
+        iosClientId: GOOGLE_IOS_CLIENT_ID,
+      });
     }
     void bootstrap();
   }, [bootstrap]);
