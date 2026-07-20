@@ -1,0 +1,120 @@
+/**
+ * UI chrome copy — English-only in v1 (the EN/ع toggle switches CONTENT
+ * language, not the chrome). Typed keys so a later i18next migration is
+ * mechanical. Voice/personality lines live in lib/quips.ts.
+ */
+export const strings = {
+  onboarding: {
+    wordmark: 'ARCHITECTO',
+    headline: 'Five minutes a day.\nCompounds forever.',
+    subtitle:
+      'A daily rep with Archie — learn it, say it out loud, keep the streak. System design, coding, product, behavioral.',
+    chipStreaks: 'Streaks',
+    chipXp: 'XP',
+    chipVoice: 'Voice or text',
+    google: 'Continue with Google',
+    email: 'Continue with email',
+    proNote:
+      'Pro on the web? It unlocks here automatically.\nNo wallet required — Archie checked.',
+  },
+  auth: {
+    loginTitle: 'Welcome back.',
+    registerTitle: 'Create your account.',
+    email: 'Email',
+    password: 'Password',
+    name: 'Name',
+    login: 'Log in',
+    register: 'Sign up',
+    switchToRegister: 'New here? Create an account',
+    switchToLogin: 'Already have an account? Log in',
+    otpTitle: 'Check your email.',
+    otpSubtitle: 'We sent a 6-digit code to',
+    otpVerify: 'Verify',
+  },
+  home: {
+    todaysRep: "TODAY'S REP",
+    repMeta: '~90 SEC · VOICE',
+    start: 'Start the rep',
+    dayStreak: 'day streak',
+    streakQuip: 'Archie has counted every single one.',
+    completedTitle: 'Done for today.',
+    completedCta: 'See feedback',
+  },
+  drills: {
+    title: 'Drills',
+    all: 'All',
+    engineering: 'Engineering',
+    management: 'Management',
+    product: 'Product',
+    voice: 'VOICE',
+    footer:
+      'Every drill is answerable out loud. The whiteboard stays on the web — where it belongs.',
+    freeLeft: (n: number) => `${n} free drill${n === 1 ? '' : 's'} left today`,
+  },
+  rep: {
+    todaysRep: "TODAY'S REP",
+    drill: 'DRILL',
+    typing: 'TYPING',
+    recording: 'RECORDING',
+    grading: 'GRADING YOUR ANSWER',
+    holdToAnswer: 'Hold to answer',
+    holdMicHint: 'Hold the mic to speak',
+    releaseToFinish: 'Release to finish',
+    repeatQuestion: 'Repeat question',
+    typeInstead: '…or type your answer',
+    switchToVoice: 'Switch to voice',
+    submit: 'Submit',
+    archie: 'ARCHIE',
+    noSpinners:
+      'No spinners in this house. Archie thinks out loud —\nsame pattern for grading, loading drills, and syncing.',
+    interviewerWrites: 'The interviewer writes something down…',
+    closeConfirmTitle: 'Leave the rep?',
+    closeConfirmBody: 'Your answer so far will be lost.',
+    closeConfirmStay: 'Keep going',
+    closeConfirmLeave: 'Leave',
+  },
+  feedback: {
+    redeem: 'REDEEM YOURSELF',
+    answerFollowUp: (xp: number) => `Answer the follow-up · +${xp} XP`,
+    done: 'Done',
+    day: (n: number) => `Day ${n}`,
+    xp: (n: number) => `+${n} XP`,
+  },
+  celebration: {
+    dayStreak: (n: number) =>
+      n === 1 ? 'day streak — it begins' : 'day streak',
+    newRecord: 'day streak — new record',
+    xpToday: (n: number) => `+${n} XP today`,
+    tomorrow: 'Same time tomorrow?',
+    share: 'Share the flex',
+    shareText: (n: number) =>
+      `Day ${n} of daily interview reps with Archie on Architecto. Statistically, I now explain consistent hashing in my sleep.`,
+  },
+  stats: { title: 'Stats' },
+  profile: {
+    title: 'Profile',
+    contentLanguage: 'Question language',
+    pro: 'PRO',
+    free: 'FREE',
+    proNote: 'Pro on the web unlocks here automatically.',
+    upgrade: 'Upgrade on the web',
+    signOut: 'Sign out',
+    theme: 'Theme',
+  },
+  modals: {
+    paywallTitle: 'That’s a Pro move.',
+    aiDownTitle: 'Archie is rebooting.',
+    rateLimitTitle: 'Easy, tiger.',
+    offlineTitle: 'You’re offline.',
+    genericTitle: 'That didn’t work.',
+    ok: 'OK',
+    retryLater: 'Got it',
+    upgradeCta: 'Upgrade on the web',
+  },
+  tabs: {
+    home: 'Home',
+    drills: 'Drills',
+    stats: 'Stats',
+    profile: 'Profile',
+  },
+} as const;
