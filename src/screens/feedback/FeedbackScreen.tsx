@@ -188,11 +188,11 @@ export function FeedbackScreen() {
             </Card>
           </Animated.View>
 
-          {/* Follow-up: redeem yourself */}
+          {/* Follow-up: redeem yourself. No entering animation — Fabric
+              hit-testing desyncs inside animating subtrees (RN #51621),
+              and this card holds pressables. */}
           {result.followUp && (
-            <Animated.View
-              entering={FadeInUp.delay(section++ * SECTION_DELAY).duration(450)}
-            >
+            <View>
               <Card elevated style={styles.followUpCard}>
                 <MonoText
                   weight="semiBold"
@@ -326,13 +326,11 @@ export function FeedbackScreen() {
                   </>
                 )}
               </Card>
-            </Animated.View>
+            </View>
           )}
 
-          {/* XP / streak footer */}
-          <Animated.View
-            entering={FadeInUp.delay(section++ * SECTION_DELAY).duration(450)}
-          >
+          {/* XP / streak footer — plain View so Done is always tappable. */}
+          <View>
             <Card style={styles.footerCard}>
               <View style={styles.footerStats}>
                 <View style={styles.footerStat}>
@@ -359,7 +357,7 @@ export function FeedbackScreen() {
                 <ChevronRightIcon size={13} color={theme.textSecondary} />
               </Pressable>
             </Card>
-          </Animated.View>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </Screen>

@@ -85,7 +85,9 @@ export function CelebrationScreen() {
         </Animated.View>
       </View>
 
-      <Animated.View entering={FadeInUp.delay(400)} style={styles.footer}>
+      {/* Plain View: buttons inside animating subtrees can miss taps on
+          Fabric (RN #51621). */}
+      <View style={styles.footer}>
         <PrimaryButton
           label={strings.celebration.tomorrow}
           onPress={() => navigation.popToTop()}
@@ -96,7 +98,7 @@ export function CelebrationScreen() {
           label={strings.celebration.share}
           onPress={share}
         />
-      </Animated.View>
+      </View>
     </Screen>
   );
 }

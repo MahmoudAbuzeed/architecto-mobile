@@ -30,7 +30,11 @@ export function RootNavigator() {
           <Stack.Screen name="Tabs" component={MainTabs} />
           <Stack.Group
             screenOptions={{
-              presentation: 'fullScreenModal',
+              // Card push (not fullScreenModal): UIKit modal dismissal races
+              // Fabric reconciliation and can strand the screen with dead
+              // touches (react-native-screens #3648/#4361).
+              presentation: 'card',
+              animation: 'slide_from_bottom',
               // A swipe must not kill a live rep — leaving is explicit (the X).
               gestureEnabled: false,
             }}
