@@ -57,6 +57,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         set({ pendingVerificationEmail: email, isLoading: false });
         return;
       }
+      if (res.requires2FA || !res.accessToken) {
+        set({
+          error:
+            'This account uses two-factor auth, which the mobile app doesn’t support yet — sign in with Google instead.',
+          isLoading: false,
+        });
+        return;
+      }
       tokenStorage.setTokens(res.accessToken, res.refreshToken);
       set({ user: res.user, isAuthenticated: true, isLoading: false });
     } catch (e) {
@@ -69,7 +77,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const res = await authService.register(email, password, name);
-      if (res.requiresVerification) {
+      if (res.requiresVerification || !res.accessToken) {
         set({ pendingVerificationEmail: email, isLoading: false });
         return;
       }

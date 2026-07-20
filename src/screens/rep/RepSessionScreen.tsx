@@ -142,6 +142,8 @@ export function RepSessionScreen() {
   }, [speech, setPhase, tts]);
 
   const onHoldEnd = useCallback(async () => {
+    // Guard: a cancelled/terminated press can fire this outside recording.
+    if (useRepStore.getState().phase !== 'recording') return;
     const transcript = await speech.stop();
     if (transcript) {
       void submit(transcript, 'voice', contentLanguage);
@@ -207,32 +209,7 @@ export function RepSessionScreen() {
           </Card>
         )}
 
-        {phase === 'recording' ? (
-          // ── Recording: live transcript + waveform + release hint ──────
-          <View style={styles.flexPadded}>
-            <View style={styles.interviewerRow}>
-              <ArchieLottie mood="brain" size={44} />
-              <AppText secondary style={styles.interviewerNote}>
-                {strings.rep.interviewerWrites}
-              </AppText>
-            </View>
-            <TranscriptView transcript={speech.transcript} rtl={rtl} />
-            <View style={styles.recordingWave}>
-              <WaveBars active color={theme.accent} variant="recording" />
-            </View>
-            <View style={styles.micColumn}>
-              <HoldToTalkButton
-                recording
-                size={96}
-                onPressIn={() => undefined}
-                onPressOut={() => void onHoldEnd()}
-              />
-              <AppText secondary style={styles.micHint}>
-                {strings.rep.releaseToFinish}
-              </AppText>
-            </View>
-          </View>
-        ) : phase === 'typing' ? (
+        {phase === 'typing' ? (
           // ── Typing: quiet-place mode (design 2c) ───────────────────────
           <View style={styles.flexPadded}>
             <View style={styles.typingBubbleRow}>
@@ -287,60 +264,92 @@ export function RepSessionScreen() {
             </View>
           </View>
         ) : (
-          // ── Asking: Archie speaks, hold-to-talk or type (design 2b) ────
+          // ── Asking + Recording share one layout so the mic Pressable is
+          // never unmounted mid-press (the release must land on the same
+          // element that saw the press). Center content swaps by phase.
           <View style={styles.flexPadded}>
-            <View style={styles.askCenter}>
-              <ArchieCircle mood="teacher" bob />
-              <WaveBars active={tts.isPlaying} color={theme.action} />
-              <Card style={styles.questionBubble}>
-                <MonoText
-                  weight="semiBold"
-                  color={theme.textSecondary}
-                  style={styles.archieLabel}
-                >
-                  {strings.rep.archie}
-                </MonoText>
-                <AppText style={[styles.questionText, rtl && styles.rtlText]}>
-                  “{params.prompt}”
-                </AppText>
-              </Card>
-            </View>
-            <View style={styles.askBottom}>
-              <View style={styles.inputRow}>
-                <Pressable
-                  style={[
-                    styles.typePill,
-                    {
-                      backgroundColor: theme.card,
-                      borderColor: theme.borderStrong,
-                    },
-                  ]}
-                  onPress={() => {
-                    void tts.stop();
-                    setPhase('typing');
-                  }}
-                >
-                  <KeyboardIcon size={15} color={theme.textDim} />
-                  <AppText dim style={styles.typePillText}>
-                    {strings.rep.typeInstead}
+            {phase === 'recording' ? (
+              <>
+                <View style={styles.interviewerRow}>
+                  <ArchieLottie mood="brain" size={44} />
+                  <AppText secondary style={styles.interviewerNote}>
+                    {strings.rep.interviewerWrites}
                   </AppText>
-                </Pressable>
+                </View>
+                <TranscriptView transcript={speech.transcript} rtl={rtl} />
+                <View style={styles.recordingWave}>
+                  <WaveBars active color={theme.accent} variant="recording" />
+                </View>
+              </>
+            ) : (
+              <View style={styles.askCenter}>
+                <ArchieCircle mood="teacher" bob />
+                <WaveBars active={tts.isPlaying} color={theme.action} />
+                <Card style={styles.questionBubble}>
+                  <MonoText
+                    weight="semiBold"
+                    color={theme.textSecondary}
+                    style={styles.archieLabel}
+                  >
+                    {strings.rep.archie}
+                  </MonoText>
+                  <AppText style={[styles.questionText, rtl && styles.rtlText]}>
+                    “{params.prompt}”
+                  </AppText>
+                </Card>
+              </View>
+            )}
+            <View style={styles.askBottom}>
+              <View
+                style={[
+                  styles.inputRow,
+                  phase === 'recording' && styles.inputRowRecording,
+                ]}
+              >
+                {phase !== 'recording' && (
+                  <Pressable
+                    style={[
+                      styles.typePill,
+                      {
+                        backgroundColor: theme.card,
+                        borderColor: theme.borderStrong,
+                      },
+                    ]}
+                    onPress={() => {
+                      void tts.stop();
+                      setPhase('typing');
+                    }}
+                  >
+                    <KeyboardIcon size={15} color={theme.textDim} />
+                    <AppText dim style={styles.typePillText}>
+                      {strings.rep.typeInstead}
+                    </AppText>
+                  </Pressable>
+                )}
                 <HoldToTalkButton
-                  recording={false}
+                  recording={phase === 'recording'}
                   size={66}
                   onPressIn={onHoldStart}
-                  onPressOut={() => undefined}
+                  onPressOut={() => void onHoldEnd()}
                 />
               </View>
               <View style={styles.hintsRow}>
-                <Pressable onPress={() => void playQuestion()}>
-                  <AppText dim style={styles.repeatHint}>
-                    {strings.rep.repeatQuestion}
+                {phase === 'recording' ? (
+                  <AppText secondary style={[styles.holdHint, styles.centerHint]}>
+                    {strings.rep.releaseToFinish}
                   </AppText>
-                </Pressable>
-                <AppText secondary style={styles.holdHint}>
-                  {strings.rep.holdMicHint}
-                </AppText>
+                ) : (
+                  <>
+                    <Pressable onPress={() => void playQuestion()}>
+                      <AppText dim style={styles.repeatHint}>
+                        {strings.rep.repeatQuestion}
+                      </AppText>
+                    </Pressable>
+                    <AppText secondary style={styles.holdHint}>
+                      {strings.rep.holdMicHint}
+                    </AppText>
+                  </>
+                )}
               </View>
             </View>
           </View>
@@ -389,6 +398,8 @@ const styles = StyleSheet.create({
   questionText: { fontSize: 17, lineHeight: 24.5, fontWeight: '500' },
   askBottom: { gap: 12 },
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  inputRowRecording: { justifyContent: 'center' },
+  centerHint: { flex: 1, textAlign: 'center' },
   typePill: {
     flex: 1,
     minWidth: 0,
@@ -418,8 +429,6 @@ const styles = StyleSheet.create({
   },
   interviewerNote: { fontSize: 12, fontStyle: 'italic' },
   recordingWave: { marginBottom: 16 },
-  micColumn: { alignItems: 'center', gap: 12 },
-  micHint: { fontSize: 13, fontWeight: '600' },
 
   typingBubbleRow: {
     flexDirection: 'row',
