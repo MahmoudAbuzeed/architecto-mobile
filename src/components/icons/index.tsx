@@ -112,6 +112,37 @@ export function ChevronRightIcon({ size = 24, color = '#6b6b70', strokeWidth = 2
   );
 }
 
+export function ChevronLeftIcon({ size = 24, color = '#6b6b70', strokeWidth = 2.2 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M15 6l-6 6 6 6" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+export function CompassIcon({ size = 24, color = '#fff', strokeWidth = 2 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx={12} cy={12} r={9} stroke={color} strokeWidth={strokeWidth} />
+      <Path
+        d="M15.5 8.5l-2.1 4.9-4.9 2.1 2.1-4.9z"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+export function LockIcon({ size = 24, color = '#6b6b70', strokeWidth = 2 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Rect x={5.5} y={11} width={13} height={9} rx={2} stroke={color} strokeWidth={strokeWidth} />
+      <Path d="M8.5 11V8a3.5 3.5 0 0 1 7 0v3" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
 export function ArrowRightIcon({ size = 24, color = '#17181c', strokeWidth = 2.6 }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">

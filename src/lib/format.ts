@@ -30,10 +30,14 @@ export function formatSeconds(total: number): string {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
-/** "~90S" / "~2 MIN" rows in the drill list (estimatedMinutes from API). */
-export function formatEstimate(estimatedMinutes: number): string {
-  if (estimatedMinutes <= 1.5) return '~90S';
-  return `~${Math.round(estimatedMinutes)} MIN`;
+/** "SYSTEM_DESIGN_FUNDAMENTALS" → "System Design Fundamentals". */
+export function titleCaseSlug(slug: string): string {
+  return slug
+    .toLowerCase()
+    .split(/[_\-\s]+/)
+    .filter(Boolean)
+    .map((w) => w[0].toUpperCase() + w.slice(1))
+    .join(' ');
 }
 
 /** "Sunday, Jul 20" greeting date. */

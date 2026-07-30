@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   StyleSheet,
@@ -28,9 +29,11 @@ import { TranscriptView } from '@/components/TranscriptView';
 import { QuipLoader } from '@/components/QuipLoader';
 import {
   ArrowRightIcon,
+  CheckIcon,
   CloseIcon,
   KeyboardIcon,
   MicIcon,
+  MissedIcon,
 } from '@/components/icons';
 import { useRepStore } from '@/store/rep.store';
 import { useSettingsStore } from '@/store/settings.store';
@@ -38,21 +41,28 @@ import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 import { useTtsPlayback } from '@/hooks/useTtsPlayback';
 import { useCountdown } from '@/hooks/useCountdown';
 import { ttsService } from '@/services/tts.service';
+import { primeVoicePermissions } from '@/lib/permissions';
 import { useTheme } from '@/theme/useTheme';
 import { strings } from '@/i18n/strings';
 import { GENERATING_QUIPS, pickQuip, TYPING_QUIPS } from '@/lib/quips';
 import { isArabic, toSpeechLocale } from '@/lib/languages';
 import { formatSeconds } from '@/lib/format';
+import { REP_BUDGET_SECONDS } from '@/lib/constants';
 import { radius } from '@/theme/tokens';
 import type { RootStackParamList } from '@/app/navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'RepSession'>;
 
+/** How many "SO FAR" coverage rows show before collapsing to "+N more". */
+const SO_FAR_MAX_ROWS = 3;
+
 /**
  * One screen owns the whole rep loop — asking → recording → typing →
  * submitting — as a state machine (rep.store), so the audio session and
  * countdown survive voice ↔ typed switches without navigator teardown.
+ * Probing follow-ups reuse the same loop: the `turn` swaps the question
+ * bubble while one five-minute countdown spans the whole session.
  */
 export function RepSessionScreen() {
   const theme = useTheme();
@@ -62,6 +72,8 @@ export function RepSessionScreen() {
   const rtl = isArabic(contentLanguage);
 
   const phase = useRepStore((s) => s.phase);
+  const turn = useRepStore((s) => s.turn);
+  const provisional = useRepStore((s) => s.provisional);
   const typedDraft = useRepStore((s) => s.typedDraft);
   const result = useRepStore((s) => s.result);
   const alreadyCompleted = useRepStore((s) => s.alreadyCompleted);
@@ -70,19 +82,27 @@ export function RepSessionScreen() {
   const setPhase = useRepStore((s) => s.setPhase);
   const setTypedDraft = useRepStore((s) => s.setTypedDraft);
   const submit = useRepStore((s) => s.submit);
+  const finalizeLocal = useRepStore((s) => s.finalizeLocal);
   const reset = useRepStore((s) => s.reset);
 
   const speech = useSpeechRecognition(toSpeechLocale(contentLanguage));
   const tts = useTtsPlayback();
 
-  // Countdown runs across asking + recording; budget capped for the UI.
-  const budget = Math.min(params.estimatedSeconds || 90, 300);
+  // Set when the pre-flight priming reports the mic permanently blocked —
+  // merged into the same banner/typing-fallback path as live speech errors.
+  const [primeBlocked, setPrimeBlocked] = useState(false);
+
+  // One wall-clock five-minute budget spans the whole session (probes
+  // included): useCountdown keeps its deadline across paused phases.
+  const budget = REP_BUDGET_SECONDS;
   const remaining = useCountdown(
     budget,
     phase === 'asking' || phase === 'recording',
   );
 
   const playQuestion = useCallback(async () => {
+    // Probe questions are text-only (no audio endpoint for them).
+    if (useRepStore.getState().turn.kind === 'probe') return;
     try {
       const path = params.drillSlug
         ? `/rep/drills/${encodeURIComponent(params.drillSlug)}/audio`
@@ -106,7 +126,28 @@ export function RepSessionScreen() {
       prompt: params.prompt,
       budgetSeconds: budget,
     });
-    void playQuestion();
+    if (useSettingsStore.getState().micPrimed) {
+      void playQuestion();
+    } else {
+      // First rep ever: explain before the OS interrupts the first hold.
+      Alert.alert(
+        strings.rep.micExplainerTitle,
+        strings.rep.micExplainerBody,
+        [
+          {
+            text: strings.rep.micExplainerCta,
+            onPress: () => {
+              void (async () => {
+                const outcome = await primeVoicePermissions();
+                useSettingsStore.getState().setMicPrimed(true);
+                if (outcome === 'blocked') setPrimeBlocked(true);
+                void playQuestion();
+              })();
+            },
+          },
+        ],
+      );
+    }
     return () => {
       void tts.stop();
       reset();
@@ -114,11 +155,60 @@ export function RepSessionScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- run once per mount
   }, []);
 
+  // A speech error while asking/recording drops the user onto the keyboard
+  // with the explanation visible — once per error (ref-guarded).
+  const voiceError =
+    speech.error ?? (primeBlocked ? strings.rep.micDeniedBody : null);
+  const voiceErrorKind = speech.errorKind ?? (primeBlocked ? 'permission' : null);
+  const errorHandledRef = useRef(false);
+  useEffect(() => {
+    if (!voiceError) {
+      errorHandledRef.current = false;
+      return;
+    }
+    if (errorHandledRef.current) return;
+    errorHandledRef.current = true;
+    const current = useRepStore.getState().phase;
+    if (current === 'asking' || current === 'recording') {
+      setPhase('typing');
+    }
+  }, [voiceError, setPhase]);
+
+  // Budget spent mid-probing (not while recording/grading): grade what we
+  // have — the first answer is already banked server-side.
+  useEffect(() => {
+    if (remaining > 0) return;
+    const s = useRepStore.getState();
+    if (
+      s.turn.kind === 'probe' &&
+      (s.phase === 'asking' || s.phase === 'typing')
+    ) {
+      finalizeLocal();
+    }
+  }, [remaining, phase, finalizeLocal]);
+
   // Every way out of a live rep — the X, Android hardware back, any pop —
   // funnels through this guard: blocked while grading, confirmed otherwise.
   // 'done' lets the Feedback handoff below pass through untouched.
   usePreventRemove(phase !== 'done', ({ data }) => {
     if (phase === 'submitting') return;
+    if (turn.kind === 'probe') {
+      // Mid-probing there's a third door: bank the combined state so far.
+      Alert.alert(
+        strings.rep.closeConfirmTitle,
+        strings.rep.closeConfirmProbingBody,
+        [
+          { text: strings.rep.closeConfirmStay, style: 'cancel' },
+          { text: strings.rep.gradeWhatIHave, onPress: () => finalizeLocal() },
+          {
+            text: strings.rep.closeConfirmLeave,
+            style: 'destructive',
+            onPress: () => navigation.dispatch(data.action),
+          },
+        ],
+      );
+      return;
+    }
     Alert.alert(
       strings.rep.closeConfirmTitle,
       strings.rep.closeConfirmBody,
@@ -143,9 +233,11 @@ export function RepSessionScreen() {
     }
   }, [phase, result, alreadyCompleted, navigation]);
 
-  const onHoldStart = useCallback(() => {
-    void tts.stop();
+  const onHoldStart = useCallback(async () => {
     setPhase('recording');
+    // Serialize the audio session: playback must fully stop before the
+    // recognizer grabs the mic (iOS play/record session race).
+    await tts.stop();
     void speech.start();
   }, [speech, setPhase, tts]);
 
@@ -160,6 +252,9 @@ export function RepSessionScreen() {
     }
   }, [speech, submit, contentLanguage, setPhase]);
 
+  const probing = turn.kind === 'probe';
+  const questionText = turn.kind === 'probe' ? turn.probe.question : params.prompt;
+
   const headerLabel =
     phase === 'recording'
       ? strings.rep.recording
@@ -167,7 +262,21 @@ export function RepSessionScreen() {
         ? `${strings.rep.typing} · ${params.title.toUpperCase().slice(0, 24)}`
         : phase === 'submitting'
           ? strings.rep.grading
-          : `${params.drillSlug ? strings.rep.drill : strings.rep.todaysRep} · ${params.title.toUpperCase().slice(0, 24)}`;
+          : turn.kind === 'probe'
+            ? strings.rep.followUpKicker(turn.number, turn.total)
+            : `${params.drillSlug ? strings.rep.drill : strings.rep.todaysRep} · ${params.title.toUpperCase().slice(0, 24)}`;
+
+  const inlineError = error ?? voiceError;
+
+  // "SO FAR" coverage strip data (probing only): covered ✓ then missed ·,
+  // capped, with the remainder folded into "+N more".
+  const soFarRows = probing && provisional
+    ? [
+        ...provisional.covered.map((text) => ({ text, covered: true })),
+        ...provisional.missed.map((text) => ({ text, covered: false })),
+      ]
+    : [];
+  const soFarOverflow = Math.max(0, soFarRows.length - SO_FAR_MAX_ROWS);
 
   // ── Submitting: the app-wide quip loader (design 2d) ─────────────────
   if (phase === 'submitting') {
@@ -210,11 +319,22 @@ export function RepSessionScreen() {
           </MonoText>
         </View>
 
-        {error && (
+        {inlineError && (
           <Card style={styles.errorCard}>
             <AppText secondary style={styles.errorText}>
-              {error}
+              {inlineError}
             </AppText>
+            {voiceErrorKind === 'permission' && (
+              <Pressable
+                onPress={() => void Linking.openSettings()}
+                hitSlop={8}
+                style={styles.openSettings}
+              >
+                <AppText style={[styles.openSettingsText, { color: theme.blue }]}>
+                  {strings.rep.openSettings}
+                </AppText>
+              </Pressable>
+            )}
           </Card>
         )}
 
@@ -224,8 +344,8 @@ export function RepSessionScreen() {
             <View style={styles.typingBubbleRow}>
               <ArchieLottie mood="brain" size={34} />
               <Card style={styles.typingQuipBubble}>
-                <AppText secondary style={styles.typingQuip}>
-                  {pickQuip(TYPING_QUIPS)}
+                <AppText secondary style={[styles.typingQuip, rtl && styles.rtlText]}>
+                  {probing ? `“${questionText}”` : pickQuip(TYPING_QUIPS)}
                 </AppText>
               </Card>
             </View>
@@ -235,7 +355,7 @@ export function RepSessionScreen() {
                 autoFocus
                 value={typedDraft}
                 onChangeText={setTypedDraft}
-                placeholder={params.title}
+                placeholder={probing ? questionText : params.title}
                 placeholderTextColor={theme.textDim}
                 style={[
                   styles.editor,
@@ -294,6 +414,38 @@ export function RepSessionScreen() {
               <View style={styles.askCenter}>
                 <ArchieCircle mood="teacher" bob />
                 <WaveBars active={tts.isPlaying} color={theme.action} />
+                {probing && soFarRows.length > 0 && (
+                  <Card style={styles.soFarCard}>
+                    <MonoText
+                      weight="semiBold"
+                      color={theme.textSecondary}
+                      style={styles.soFarKicker}
+                    >
+                      {strings.rep.soFar}
+                    </MonoText>
+                    {soFarRows.slice(0, SO_FAR_MAX_ROWS).map((row) => (
+                      <View key={`${row.covered}-${row.text}`} style={styles.soFarRow}>
+                        {row.covered ? (
+                          <CheckIcon size={12} color={theme.emerald} />
+                        ) : (
+                          <MissedIcon size={12} />
+                        )}
+                        <AppText
+                          secondary={!row.covered}
+                          numberOfLines={1}
+                          style={[styles.soFarText, rtl && styles.rtlText]}
+                        >
+                          {row.text}
+                        </AppText>
+                      </View>
+                    ))}
+                    {soFarOverflow > 0 && (
+                      <AppText dim style={styles.soFarMore}>
+                        {strings.rep.soFarMore(soFarOverflow)}
+                      </AppText>
+                    )}
+                  </Card>
+                )}
                 <Card style={styles.questionBubble}>
                   <MonoText
                     weight="semiBold"
@@ -303,7 +455,7 @@ export function RepSessionScreen() {
                     {strings.rep.archie}
                   </MonoText>
                   <AppText style={[styles.questionText, rtl && styles.rtlText]}>
-                    “{params.prompt}”
+                    “{questionText}”
                   </AppText>
                 </Card>
               </View>
@@ -338,7 +490,7 @@ export function RepSessionScreen() {
                 <HoldToTalkButton
                   recording={phase === 'recording'}
                   size={66}
-                  onPressIn={onHoldStart}
+                  onPressIn={() => void onHoldStart()}
                   onPressOut={() => void onHoldEnd()}
                 />
               </View>
@@ -349,11 +501,15 @@ export function RepSessionScreen() {
                   </AppText>
                 ) : (
                   <>
-                    <Pressable onPress={() => void playQuestion()}>
-                      <AppText dim style={styles.repeatHint}>
-                        {strings.rep.repeatQuestion}
-                      </AppText>
-                    </Pressable>
+                    {!probing ? (
+                      <Pressable onPress={() => void playQuestion()}>
+                        <AppText dim style={styles.repeatHint}>
+                          {strings.rep.repeatQuestion}
+                        </AppText>
+                      </Pressable>
+                    ) : (
+                      <View />
+                    )}
                     <AppText secondary style={styles.holdHint}>
                       {strings.rep.holdMicHint}
                     </AppText>
@@ -387,8 +543,10 @@ const styles = StyleSheet.create({
   gradingHeader: { position: 'absolute', top: 70 },
   headerLabel: { fontSize: 11, letterSpacing: 1.1 },
   timer: { fontSize: 12 },
-  errorCard: { marginHorizontal: 24, marginBottom: 8, padding: 12 },
+  errorCard: { marginHorizontal: 24, marginBottom: 8, padding: 12, gap: 6 },
   errorText: { fontSize: 12.5, lineHeight: 18 },
+  openSettings: { alignSelf: 'flex-start' },
+  openSettingsText: { fontSize: 12.5, fontWeight: '600' },
 
   askCenter: {
     flex: 1,
@@ -396,6 +554,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 20,
   },
+  soFarCard: {
+    alignSelf: 'stretch',
+    maxWidth: 320,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    gap: 6,
+  },
+  soFarKicker: { fontSize: 9.5, letterSpacing: 1.4 },
+  soFarRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  soFarText: { flex: 1, minWidth: 0, fontSize: 11.5, fontWeight: '500' },
+  soFarMore: { fontSize: 10.5 },
   questionBubble: {
     borderTopLeftRadius: 4,
     borderRadius: radius.bubble,

@@ -75,6 +75,17 @@ export const lightTheme: Theme = {
   archieCircle: '#eceef2',
 };
 
+// Foreground palette for the dark "spotlight" cards (Card `elevated`). Those
+// cards are a near-black surface in BOTH themes (elevated is #2d2e33 dark /
+// #171717 light), so their text must be a fixed light set — theme.text goes
+// dark in the light theme and would be invisible on them.
+export const ELEVATED_FG = {
+  text: '#fafafa',
+  secondary: '#c4c4c4',
+  dim: '#8f8f96',
+  border: 'rgba(255,255,255,0.18)',
+};
+
 export const CATEGORY_GROUP_COLORS: Record<string, string> = {
   engineering: '#3b82f6',
   management: '#8b5cf6',

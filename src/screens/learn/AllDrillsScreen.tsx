@@ -1,22 +1,31 @@
 import React, { useCallback } from 'react';
 import { FlatList, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import {
+  useFocusEffect,
+  useNavigation,
+  CompositeNavigationProp,
+} from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import Animated, { FadeInUp } from 'react-native-reanimated';
-import { AppText, Card, Chip, MonoText, Screen } from '@/components/Primitives';
+import { AppText, Chip, Screen } from '@/components/Primitives';
+import { DrillRowCard } from '@/components/DrillRowCard';
 import { QuipLoader } from '@/components/QuipLoader';
-import { ChevronRightIcon, CircleCheckIcon, MicIcon } from '@/components/icons';
+import { ChevronLeftIcon } from '@/components/icons';
 import { useDrillsStore } from '@/store/drills.store';
 import { useSettingsStore } from '@/store/settings.store';
 import { useTheme } from '@/theme/useTheme';
-import { CATEGORY_GROUP_COLORS, DIFFICULTY_COLORS } from '@/theme/tokens';
+import { CATEGORY_GROUP_COLORS } from '@/theme/tokens';
 import { strings } from '@/i18n/strings';
 import { THINKING_QUIPS } from '@/lib/quips';
-import { formatEstimate } from '@/lib/format';
 import type { DrillRow, RepCategoryGroup } from '@/types';
-import type { RootStackParamList } from '@/app/navigation/types';
+import type {
+  LearnStackParamList,
+  RootStackParamList,
+} from '@/app/navigation/types';
 
-type Nav = NativeStackNavigationProp<RootStackParamList>;
+type Nav = CompositeNavigationProp<
+  NativeStackNavigationProp<LearnStackParamList, 'AllDrills'>,
+  NativeStackNavigationProp<RootStackParamList>
+>;
 type Group = 'all' | RepCategoryGroup;
 
 const GROUPS: Array<{ key: Group; label: string; color?: string }> = [
@@ -38,13 +47,18 @@ const GROUPS: Array<{ key: Group; label: string; color?: string }> = [
   },
 ];
 
-export function DrillsScreen() {
+/** The full drill catalog (ex-Drills tab): group chips + infinite scroll. */
+export function AllDrillsScreen() {
   const theme = useTheme();
   const navigation = useNavigation<Nav>();
-  const payload = useDrillsStore((s) => s.payload);
+  const rows = useDrillsStore((s) => s.rows);
+  const hasMore = useDrillsStore((s) => s.hasMore);
+  const isLoading = useDrillsStore((s) => s.isLoading);
+  const freeDrillsRemainingToday = useDrillsStore((s) => s.freeDrillsRemainingToday);
   const group = useDrillsStore((s) => s.group);
   const setGroup = useDrillsStore((s) => s.setGroup);
   const fetch = useDrillsStore((s) => s.fetch);
+  const loadMore = useDrillsStore((s) => s.loadMore);
   const contentLanguage = useSettingsStore((s) => s.contentLanguage);
   const setContentLanguage = useSettingsStore((s) => s.setContentLanguage);
 
@@ -56,56 +70,29 @@ export function DrillsScreen() {
 
   const renderRow = useCallback(
     ({ item, index }: { item: DrillRow; index: number }) => (
-      <Animated.View entering={FadeInUp.delay(Math.min(index, 10) * 40).duration(300)}>
-        <Pressable
-          onPress={() =>
-            navigation.navigate('RepSession', {
-              drillSlug: item.questionSlug,
-              title: item.title,
-              prompt: item.title,
-              estimatedSeconds: item.estimatedMinutes * 60,
-            })
-          }
-          style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-        >
-          <Card style={styles.row}>
-            <View style={styles.rowBody}>
-              <AppText style={styles.rowTitle}>{item.title}</AppText>
-              <View style={styles.metaRow}>
-                <MonoText
-                  weight="semiBold"
-                  color={DIFFICULTY_COLORS[item.difficulty]}
-                  style={styles.diff}
-                >
-                  {item.difficulty.toUpperCase()}
-                </MonoText>
-                <MonoText weight="medium" color={theme.textDim} style={styles.meta}>
-                  {formatEstimate(item.estimatedMinutes)}
-                </MonoText>
-                <View style={styles.voiceBadge}>
-                  <MicIcon size={9} color={theme.textDim} strokeWidth={2.6} />
-                  <MonoText weight="medium" color={theme.textDim} style={styles.meta}>
-                    {strings.drills.voice}
-                  </MonoText>
-                </View>
-              </View>
-            </View>
-            {item.done ? (
-              <CircleCheckIcon size={18} color={theme.emerald} />
-            ) : (
-              <ChevronRightIcon size={16} color={theme.textDim} />
-            )}
-          </Card>
-        </Pressable>
-      </Animated.View>
+      <DrillRowCard
+        drill={item}
+        index={index}
+        onPress={() =>
+          navigation.navigate('RepSession', {
+            drillSlug: item.questionSlug,
+            title: item.title,
+            prompt: item.title,
+            category: item.category,
+          })
+        }
+      />
     ),
-    [navigation, theme],
+    [navigation],
   );
 
   return (
     <Screen>
       {/* Title + EN/ع content-language toggle */}
       <View style={styles.headerRow}>
+        <Pressable onPress={() => navigation.goBack()} hitSlop={12}>
+          <ChevronLeftIcon size={20} color={theme.textSecondary} />
+        </Pressable>
         <AppText style={styles.title}>{strings.drills.title}</AppText>
         <View
           style={[
@@ -175,22 +162,31 @@ export function DrillsScreen() {
       </View>
 
       {/* Drill list */}
-      {!payload ? (
+      {rows.length === 0 && isLoading ? (
         <View style={styles.loading}>
           <QuipLoader pool={THINKING_QUIPS} size={160} />
         </View>
       ) : (
         <FlatList
-          data={payload.questions}
+          data={rows}
           keyExtractor={(item) => item.questionSlug}
           renderItem={renderRow}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
+          onEndReached={() => {
+            if (hasMore) void loadMore();
+          }}
+          onEndReachedThreshold={0.4}
           ListFooterComponent={
             <View style={styles.footer}>
-              {payload.freeDrillsRemainingToday !== null && (
+              {isLoading && rows.length > 0 && (
+                <View style={styles.footerLoader}>
+                  <QuipLoader pool={THINKING_QUIPS} showArchie={false} size={0} />
+                </View>
+              )}
+              {freeDrillsRemainingToday !== null && (
                 <AppText dim style={styles.footerText}>
-                  {strings.drills.freeLeft(payload.freeDrillsRemainingToday)}
+                  {strings.drills.freeLeft(freeDrillsRemainingToday)}
                 </AppText>
               )}
               <AppText dim style={styles.footerText}>
@@ -208,11 +204,11 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 12,
     paddingHorizontal: 20,
     paddingTop: 20,
   },
-  title: { fontSize: 24, fontWeight: '700', letterSpacing: -0.24 },
+  title: { flex: 1, minWidth: 0, fontSize: 24, fontWeight: '700', letterSpacing: -0.24 },
   toggle: {
     flexDirection: 'row',
     borderWidth: 1,
@@ -236,20 +232,7 @@ const styles = StyleSheet.create({
   },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   list: { paddingHorizontal: 20, paddingTop: 14, paddingBottom: 28, gap: 10 },
-  row: {
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    borderRadius: 14,
-  },
-  rowBody: { flex: 1, minWidth: 0, gap: 5 },
-  rowTitle: { fontSize: 14.5, fontWeight: '600', lineHeight: 19 },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  diff: { fontSize: 10, letterSpacing: 0.6 },
-  meta: { fontSize: 10.5 },
-  voiceBadge: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   footer: { paddingTop: 6, paddingHorizontal: 20, gap: 4 },
+  footerLoader: { paddingVertical: 10 },
   footerText: { fontSize: 11.5, lineHeight: 17, textAlign: 'center' },
 });

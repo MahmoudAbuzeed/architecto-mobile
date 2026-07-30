@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import {
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -223,9 +224,24 @@ export function FeedbackScreen() {
                     </AppText>
 
                     {inlineError && phase.kind !== 'submitting' && (
-                      <AppText secondary style={styles.errorText}>
-                        {inlineError}
-                      </AppText>
+                      <View style={styles.errorBox}>
+                        <AppText secondary style={styles.errorText}>
+                          {inlineError}
+                        </AppText>
+                        {speech.errorKind === 'permission' && (
+                          <Pressable
+                            onPress={() => void Linking.openSettings()}
+                            hitSlop={8}
+                            style={styles.openSettings}
+                          >
+                            <AppText
+                              style={[styles.openSettingsText, { color: theme.blue }]}
+                            >
+                              {strings.rep.openSettings}
+                            </AppText>
+                          </Pressable>
+                        )}
+                      </View>
                     )}
 
                     {phase.kind === 'submitting' ? (
@@ -402,7 +418,10 @@ const styles = StyleSheet.create({
   followUpQuestion: { fontSize: 15, fontWeight: '600', lineHeight: 21 },
   followUpFeedback: { fontSize: 13.5, lineHeight: 19.5 },
   followUpXp: { fontSize: 14 },
+  errorBox: { gap: 4 },
   errorText: { fontSize: 12, lineHeight: 17 },
+  openSettings: { alignSelf: 'flex-start' },
+  openSettingsText: { fontSize: 12, fontWeight: '600' },
   submittingBox: { paddingVertical: 8, alignItems: 'center' },
   micColumn: { alignItems: 'center', gap: 8, paddingTop: 2 },
   micHint: { fontSize: 12.5, fontWeight: '600' },

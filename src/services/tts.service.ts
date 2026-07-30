@@ -46,10 +46,13 @@ export const ttsService = {
     if (await ReactNativeBlobUtil.fs.exists(file)) return file;
 
     const token = tokenStorage.getAccessToken();
+    // The path may already carry a query (e.g. "/learn/daily/audio?track=X"),
+    // so pick the right separator instead of always appending "?lang=".
+    const sep = audioPath.includes('?') ? '&' : '?';
     const res = await ReactNativeBlobUtil.config({ path: file })
       .fetch(
         'GET',
-        `${API_BASE_URL}${audioPath}?lang=${encodeURIComponent(lang)}`,
+        `${API_BASE_URL}${audioPath}${sep}lang=${encodeURIComponent(lang)}`,
         { Authorization: `Bearer ${token ?? ''}` },
       );
     const status = res.info().status;

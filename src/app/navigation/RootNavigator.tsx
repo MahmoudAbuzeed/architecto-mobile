@@ -7,6 +7,9 @@ import { MainTabs } from './MainTabs';
 import { RepSessionScreen } from '@/screens/rep/RepSessionScreen';
 import { FeedbackScreen } from '@/screens/feedback/FeedbackScreen';
 import { CelebrationScreen } from '@/screens/celebration/CelebrationScreen';
+import { TrackPickerScreen } from '@/screens/learn/TrackPickerScreen';
+import { DailyLessonScreen } from '@/screens/daily/DailyLessonScreen';
+import { DailyQuizScreen } from '@/screens/daily/DailyQuizScreen';
 import type { RootStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -43,6 +46,37 @@ export function RootNavigator() {
             <Stack.Screen name="Feedback" component={FeedbackScreen} />
             <Stack.Screen name="Celebration" component={CelebrationScreen} />
           </Stack.Group>
+          {/* Daily lesson: reading is safely dismissible (gestures on). */}
+          <Stack.Screen
+            name="DailyLesson"
+            component={DailyLessonScreen}
+            options={{
+              presentation: 'card',
+              animation: 'slide_from_bottom',
+              gestureEnabled: true,
+            }}
+          />
+          {/* Quiz follows the lesson laterally; exit guarded by usePreventRemove. */}
+          <Stack.Screen
+            name="DailyQuiz"
+            component={DailyQuizScreen}
+            options={{
+              presentation: 'card',
+              animation: 'slide_from_right',
+              gestureEnabled: false,
+            }}
+          />
+          <Stack.Screen
+            name="TrackPicker"
+            component={TrackPickerScreen}
+            // Same card-not-modal presentation as the rep group (see above),
+            // but a picker is safely dismissible — gestures stay on.
+            options={{
+              presentation: 'card',
+              animation: 'slide_from_bottom',
+              gestureEnabled: true,
+            }}
+          />
         </Stack.Group>
       )}
     </Stack.Navigator>

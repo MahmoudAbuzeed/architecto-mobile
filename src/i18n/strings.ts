@@ -33,12 +33,83 @@ export const strings = {
   },
   home: {
     todaysRep: "TODAY'S REP",
-    repMeta: '~90 SEC · VOICE',
+    repMeta: '~5 MIN · VOICE',
+    repPitch:
+      'Out loud, off the cuff. Five minutes of my complete, judgmental attention — and if you leave gaps, I will ask about them.',
     start: 'Start the rep',
     dayStreak: 'day streak',
     streakQuip: 'Archie has counted every single one.',
     completedTitle: 'Done for today.',
     completedCta: 'See feedback',
+    yourTrack: 'YOUR TRACK',
+    continueCta: 'Continue · ~5 MIN',
+    pickTrackTitle: 'No track yet.',
+    pickTrackBody:
+      'Tell Archie where you’re headed and the daily rep starts compounding in that direction. No syllabus anxiety — he queues the next topic.',
+    pickTrackCta: 'Pick your track',
+    trackCompleteBody:
+      'Track complete. Genuinely impressive. Pick the next one before the confidence wears off.',
+    switchTrackCta: 'Pick a new track',
+    topicsProgress: (done: number, total: number) => `${done}/${total} topics`,
+    // Daily-lesson hero + demoted rep + tracks section.
+    todaysLesson: "TODAY'S LESSON",
+    lessonMeta: (min: number) => `~${min} MIN · READ + LISTEN`,
+    preparingLesson: 'Lining up today’s lesson…',
+    startLesson: 'Start today’s lesson',
+    reviewLesson: 'Review lesson',
+    lessonDoneTitle: 'Done for today.',
+    lessonDoneSub: (score: number, total: number) =>
+      `Quiz ${score}/${total} · come back tomorrow`,
+    lessonStreakDay: (n: number) =>
+      n > 0 ? `Day ${n} — keep it alive` : 'Start day one',
+    lessonTrackCompleteBody:
+      'You’ve finished every topic in this track. Pick the next one while the momentum’s hot.',
+    repDemotedKicker: 'DAILY VOICE REP',
+    todaySection: 'TODAY',
+    yourTracks: 'YOUR TRACKS',
+    primaryTag: 'PRIMARY',
+    startAnotherTrack: '+ Start another track',
+  },
+  daily: {
+    kicker: 'DAILY LESSON',
+    fiveMin: '~5 MIN',
+    dayN: (n: number) => `DAY ${n}`,
+    generating:
+      'Archie is condensing today’s topic into five minutes. First time on a topic takes him a moment.',
+    listen: 'Listen',
+    pause: 'Pause',
+    keyPoints: 'KEY POINTS',
+    takeQuiz: 'Take the quiz →',
+    reviewBanner: (score: number, total: number) =>
+      `Done for today — you scored ${score}/${total}. Come back tomorrow.`,
+    trackCompleteTitle: 'Track complete.',
+    trackCompleteBody:
+      'You’ve worked through every topic here. Pick a new track to keep the streak compounding.',
+    pickNewTrack: 'Pick a new track',
+    retry: 'Try again',
+    loadError: 'Couldn’t load today’s lesson.',
+    // Quiz
+    quizProgress: (n: number, total: number) => `QUESTION ${n} / ${total}`,
+    next: 'Next',
+    submitQuiz: 'Submit answers',
+    submitting: 'Grading your answers',
+    resultsScore: (score: number, total: number) => `${score} / ${total}`,
+    resultsCorrect: 'Correct',
+    resultsMissed: 'Your answer',
+    resultsAnswer: 'Answer',
+    xpEarned: (n: number) => `+${n} XP`,
+    tomorrowTeaser: (title: string) => `Tomorrow: ${title}`,
+    done: 'Done',
+    leaveQuizTitle: 'Leave the quiz?',
+    leaveQuizBody: 'Your answers so far will be lost.',
+    leaveQuizStay: 'Keep going',
+    leaveQuizLeave: 'Leave',
+    remindTitle: 'Want a nudge tomorrow?',
+    remindBody: (hour: number) =>
+      `A daily reminder at ${String(hour).padStart(2, '0')}:00 keeps the streak alive.`,
+    remindEnable: 'Remind me',
+    remindBlocked:
+      'Notifications are off for Architecto. Enable them in Settings to get your daily nudge.',
   },
   drills: {
     title: 'Drills',
@@ -47,9 +118,42 @@ export const strings = {
     management: 'Management',
     product: 'Product',
     voice: 'VOICE',
+    estimate: '~5 MIN',
     footer:
       'Every drill is answerable out loud. The whiteboard stays on the web — where it belongs.',
     freeLeft: (n: number) => `${n} free drill${n === 1 ? '' : 's'} left today`,
+  },
+  learn: {
+    switchChip: 'Switch',
+    categories: 'CATEGORIES',
+    topics: 'TOPICS',
+    drills: 'DRILLS',
+    topicsProgress: (done: number, total: number) => `${done} / ${total} topics`,
+    drillsProgress: (done: number, total: number) => `${done}/${total} drills`,
+    browseAll: 'Browse all drills →',
+    startNextDrill: 'Start next drill · ~5 min',
+    needsPrereqs: (titles: string) => `Unlocks after ${titles}`,
+    noTopics: 'No topics here yet. Even Archie needs a content sprint sometimes.',
+    noTrackTitle: 'No track yet.',
+    noTrackBody:
+      'Pick one and Archie lines up the topics — five minutes a day, in order, no decisions required.',
+    noTrackCta: 'Pick your track',
+    loadError:
+      'Couldn’t load your tracks. The drills below still work — Archie refuses to waste your five minutes.',
+  },
+  trackPicker: {
+    firstPickTitle: 'Pick your track.',
+    firstPickBody:
+      'Where the daily reps point. You can switch any time — progress is kept, not judged.',
+    switchTitle: 'Switch tracks.',
+    switchBody:
+      'Your progress stays where you left it. Archie remembers everything anyway.',
+    startTitle: 'Start another track.',
+    startBody:
+      'Add a second track and it shows up on Home too. Your daily lesson still follows your primary track.',
+    current: 'CURRENT',
+    open: 'OPEN',
+    makePrimary: 'Make primary',
   },
   rep: {
     todaysRep: "TODAY'S REP",
@@ -72,6 +176,22 @@ export const strings = {
     closeConfirmBody: 'Your answer so far will be lost.',
     closeConfirmStay: 'Keep going',
     closeConfirmLeave: 'Leave',
+    closeConfirmProbingBody:
+      'You’re mid follow-up. I can grade what you’ve given me, or you can walk away and lose it.',
+    gradeWhatIHave: 'Grade what I have',
+    followUpKicker: (n: number, total: number) => `FOLLOW-UP ${n} OF ${total}`,
+    soFar: 'SO FAR',
+    soFarMore: (n: number) => `+${n} more`,
+    micExplainerTitle: 'Archie needs ears.',
+    micExplainerBody:
+      'The rep is spoken — allow the microphone and speech recognition so hold-to-talk actually hears you. Typing stays available for libraries and open-plan offices.',
+    micExplainerCta: 'Set up the mic',
+    micDeniedTitle: 'Mic access is off.',
+    micDeniedBody:
+      'The microphone is blocked, so hold-to-talk can’t hear a word. Enable it in Settings — or type; the grading is just as judgmental.',
+    micUnavailableBody:
+      'Speech recognition isn’t cooperating on this device. Type your answer — same grading, same XP.',
+    openSettings: 'Open Settings',
   },
   feedback: {
     redeem: 'REDEEM YOURSELF',
@@ -100,6 +220,11 @@ export const strings = {
     upgrade: 'Upgrade on the web',
     signOut: 'Sign out',
     theme: 'Theme',
+    remindersTitle: 'Daily reminder',
+    remindersDescription:
+      'A gentle nudge to take your five minutes and keep the streak alive.',
+    remindersToggle: 'Daily reminder',
+    reminderHour: 'Remind me at',
   },
   modals: {
     paywallTitle: 'That’s a Pro move.',
@@ -113,7 +238,7 @@ export const strings = {
   },
   tabs: {
     home: 'Home',
-    drills: 'Drills',
+    learn: 'Learn',
     stats: 'Stats',
     profile: 'Profile',
   },

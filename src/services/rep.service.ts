@@ -4,6 +4,8 @@ import type {
   FollowUpResponse,
   GradingResponse,
   HomePayload,
+  InputMode,
+  ProbeResponse,
   StatsPayload,
   SubmitAnswerBody,
 } from '@/types';
@@ -16,6 +18,8 @@ export const repService = {
 
   async getDrills(params: {
     group?: string;
+    category?: string;
+    track?: string;
     difficulty?: string;
     page?: number;
     limit?: number;
@@ -41,6 +45,19 @@ export const repService = {
     const { data } = await api.post<GradingResponse>(
       `/rep/drills/${encodeURIComponent(slug)}/answer`,
       body,
+      { suppressErrorModal: true },
+    );
+    return data;
+  },
+
+  async submitProbe(
+    attemptId: string,
+    body: { transcript: string; inputMode: InputMode; language?: string },
+  ): Promise<ProbeResponse> {
+    const { data } = await api.post<ProbeResponse>(
+      `/rep/attempts/${encodeURIComponent(attemptId)}/probe`,
+      body,
+      // Probe errors (already answered / session complete) are session flow.
       { suppressErrorModal: true },
     );
     return data;

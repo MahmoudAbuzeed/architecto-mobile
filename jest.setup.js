@@ -74,3 +74,22 @@ jest.mock('@react-native-community/netinfo', () => ({
 jest.mock('react-native-reanimated', () =>
   require('react-native-reanimated/mock'),
 );
+
+jest.mock('react-native-notify-kit', () => ({
+  __esModule: true,
+  default: {
+    requestPermission: jest.fn().mockResolvedValue({ authorizationStatus: 1 }),
+    createChannel: jest.fn().mockResolvedValue('daily-reminder'),
+    createTriggerNotification: jest.fn().mockResolvedValue('daily-lesson-reminder'),
+    cancelTriggerNotification: jest.fn().mockResolvedValue(undefined),
+    cancelAllNotifications: jest.fn().mockResolvedValue(undefined),
+    getInitialNotification: jest.fn().mockResolvedValue(null),
+    onForegroundEvent: jest.fn(() => jest.fn()),
+    onBackgroundEvent: jest.fn(),
+  },
+  TriggerType: { TIMESTAMP: 0, INTERVAL: 1 },
+  RepeatFrequency: { NONE: -1, HOURLY: 0, DAILY: 1, WEEKLY: 2 },
+  EventType: { DISMISSED: 0, PRESS: 1, DELIVERED: 3 },
+  AuthorizationStatus: { DENIED: 0, AUTHORIZED: 1, PROVISIONAL: 2 },
+  AndroidImportance: { NONE: 0, MIN: 1, LOW: 2, DEFAULT: 3, HIGH: 4 },
+}));

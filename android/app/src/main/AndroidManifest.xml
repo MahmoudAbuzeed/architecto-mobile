@@ -2,6 +2,8 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Android 13+ runtime permission for the daily-reminder notification. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- API 30+ package visibility: without this the SpeechRecognizer can't
          see the on-device recognition service. -->

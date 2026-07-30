@@ -43,6 +43,8 @@ export const useHomeStore = create<HomeState>()(
       name: 'home-cache',
       storage: createJSONStorage(() => zustandStorage),
       partialize: (s) => ({ home: s.home }) as HomeState,
+      version: 1,
+      migrate: (persisted) => persisted as HomeState,
     },
   ),
 );

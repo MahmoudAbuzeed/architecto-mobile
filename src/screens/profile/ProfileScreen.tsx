@@ -9,6 +9,7 @@ import {
   MonoText,
   Screen,
 } from '@/components/Primitives';
+import { ReminderSettingsCard } from '@/components/ReminderSettingsCard';
 import { useTheme } from '@/theme/useTheme';
 import { useThemeStore, ThemeMode } from '@/theme/theme.store';
 import { radius } from '@/theme/tokens';
@@ -133,8 +134,13 @@ export function ProfileScreen() {
           </Card>
         </Animated.View>
 
-        {/* Theme */}
+        {/* Daily reminder */}
         <Animated.View entering={FadeInUp.delay(160)}>
+          <ReminderSettingsCard />
+        </Animated.View>
+
+        {/* Theme */}
+        <Animated.View entering={FadeInUp.delay(200)}>
           <Card style={styles.sectionCard}>
             <AppText style={styles.sectionLabel}>
               {strings.profile.theme}
@@ -153,7 +159,7 @@ export function ProfileScreen() {
         </Animated.View>
 
         {/* Sign out */}
-        <Animated.View entering={FadeInUp.delay(200)}>
+        <Animated.View entering={FadeInUp.delay(240)}>
           <Pressable
             onPress={logout}
             style={({ pressed }) => [

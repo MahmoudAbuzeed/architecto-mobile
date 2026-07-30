@@ -1,10 +1,10 @@
 import {
-  formatEstimate,
   formatLevelProgress,
   formatSeconds,
   formatXp,
   initials,
   levelFraction,
+  titleCaseSlug,
 } from './format';
 
 describe('formatXp', () => {
@@ -45,11 +45,13 @@ describe('formatSeconds', () => {
   });
 });
 
-describe('formatEstimate', () => {
-  it('uses seconds for short drills, minutes for long', () => {
-    expect(formatEstimate(1)).toBe('~90S');
-    expect(formatEstimate(1.5)).toBe('~90S');
-    expect(formatEstimate(2)).toBe('~2 MIN');
+describe('titleCaseSlug', () => {
+  it('prettifies backend enum slugs', () => {
+    expect(titleCaseSlug('SYSTEM_DESIGN_FUNDAMENTALS')).toBe(
+      'System Design Fundamentals',
+    );
+    expect(titleCaseSlug('backend-engineering')).toBe('Backend Engineering');
+    expect(titleCaseSlug('')).toBe('');
   });
 });
 

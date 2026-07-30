@@ -1,8 +1,8 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { HomeIcon, MicIcon, ProfileIcon, StatsIcon } from '@/components/icons';
+import { CompassIcon, HomeIcon, ProfileIcon, StatsIcon } from '@/components/icons';
 import { HomeScreen } from '@/screens/home/HomeScreen';
-import { DrillsScreen } from '@/screens/drills/DrillsScreen';
+import { LearnStack } from './LearnStack';
 import { StatsScreen } from '@/screens/stats/StatsScreen';
 import { ProfileScreen } from '@/screens/profile/ProfileScreen';
 import { useTheme } from '@/theme/useTheme';
@@ -35,11 +35,13 @@ export function MainTabs() {
         }}
       />
       <Tab.Screen
-        name="Drills"
-        component={DrillsScreen}
+        name="Learn"
+        component={LearnStack}
         options={{
-          tabBarLabel: strings.tabs.drills,
-          tabBarIcon: ({ color }) => <MicIcon size={20} color={color} strokeWidth={2} />,
+          tabBarLabel: strings.tabs.learn,
+          tabBarIcon: ({ color }) => (
+            <CompassIcon size={20} color={color} strokeWidth={2} />
+          ),
         }}
       />
       <Tab.Screen

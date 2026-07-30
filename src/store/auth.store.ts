@@ -144,6 +144,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: () => {
     tokenStorage.clear();
     GoogleSignin.signOut().catch(() => undefined);
+    // Cancel the local reminder and drop the daily cache. Lazy require avoids a
+    // store↔service load cycle and tolerates the notifications module's absence.
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      require('@/services/notifications.service').cancelAllReminders?.();
+    } catch {
+      // notifications optional
+    }
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      require('@/store/daily.store').useDailyStore.getState().clear();
+    } catch {
+      // daily store optional
+    }
     set({ user: null, isAuthenticated: false, pendingVerificationEmail: null });
   },
 

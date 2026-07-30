@@ -1,12 +1,22 @@
 import React, { useEffect } from 'react';
-import { StatusBar, StyleSheet, View } from 'react-native';
+import { AppState, StatusBar, StyleSheet, View } from 'react-native';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { RootNavigator } from './navigation/RootNavigator';
+import { navigationRef } from './navigation/navigationRef';
 import { ModalHost } from '@/components/ModalHost';
 import { QuipLoader } from '@/components/QuipLoader';
 import { useAuthStore } from '@/store/auth.store';
+import { useDailyStore } from '@/store/daily.store';
+import {
+  ensureChannel,
+  wireNotificationEvents,
+  checkInitialNotification,
+  syncDailyReminder,
+  flushPendingDeepLink,
+} from '@/services/notifications.service';
+import { syncNotificationPrefsOnLogin } from '@/services/prefs-sync';
 import { useTheme } from '@/theme/useTheme';
 import { THINKING_QUIPS } from '@/lib/quips';
 
@@ -18,6 +28,17 @@ const GOOGLE_IOS_CLIENT_ID =
 function Bootstrapped() {
   const theme = useTheme();
   const isBootstrapping = useAuthStore((s) => s.isBootstrapping);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+
+  // Once signed in and bootstrapped: sync notification prefs (device tz + hour),
+  // re-arm the reminder, honor a cold-start notification tap.
+  useEffect(() => {
+    if (isBootstrapping || !isAuthenticated) return;
+    void syncNotificationPrefsOnLogin();
+    void syncDailyReminder();
+    void checkInitialNotification();
+    flushPendingDeepLink();
+  }, [isBootstrapping, isAuthenticated]);
 
   if (isBootstrapping) {
     // Even the cold-start gate follows the no-spinner rule.
@@ -39,7 +60,11 @@ function Bootstrapped() {
       };
 
   return (
-    <NavigationContainer theme={navTheme}>
+    <NavigationContainer
+      ref={navigationRef}
+      theme={navTheme}
+      onReady={() => flushPendingDeepLink()}
+    >
       <RootNavigator />
     </NavigationContainer>
   );
@@ -58,6 +83,23 @@ export default function App() {
     }
     void bootstrap();
   }, [bootstrap]);
+
+  // Notifications: create the Android channel, wire the foreground tap handler,
+  // and on every foreground refresh the daily hero + re-arm the reminder.
+  useEffect(() => {
+    void ensureChannel();
+    const unwire = wireNotificationEvents();
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active' && useAuthStore.getState().isAuthenticated) {
+        void useDailyStore.getState().fetch();
+        void syncDailyReminder();
+      }
+    });
+    return () => {
+      unwire();
+      sub.remove();
+    };
+  }, []);
 
   return (
     <SafeAreaProvider>

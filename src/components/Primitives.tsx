@@ -67,14 +67,19 @@ export function MonoText({
   style,
   weight = 'semiBold',
   color,
+  numberOfLines,
 }: PropsWithChildren<{
   style?: StyleProp<TextStyle>;
   weight?: keyof typeof mono;
   color?: string;
+  numberOfLines?: number;
 }>) {
   const theme = useTheme();
   return (
-    <Text style={[{ fontFamily: mono[weight], color: color ?? theme.text }, style]}>
+    <Text
+      numberOfLines={numberOfLines}
+      style={[{ fontFamily: mono[weight], color: color ?? theme.text }, style]}
+    >
       {children}
     </Text>
   );
@@ -104,7 +109,12 @@ export function Card({
   );
 }
 
-/** Light-on-dark filled action button (the design's primary). */
+/**
+ * Light-on-dark filled action button (the design's primary). Pass `inverted`
+ * for CTAs sitting ON a dark `elevated` card — the default `theme.action` is
+ * near-black in the light theme (same as the card), which would make the button
+ * surface disappear; inverted renders a light surface with dark text instead.
+ */
 export function PrimaryButton({
   label,
   onPress,
@@ -112,6 +122,7 @@ export function PrimaryButton({
   disabled,
   style,
   height = 50,
+  inverted,
 }: {
   label: string;
   onPress: () => void;
@@ -119,8 +130,11 @@ export function PrimaryButton({
   disabled?: boolean;
   style?: StyleProp<ViewStyle>;
   height?: number;
+  inverted?: boolean;
 }) {
   const theme = useTheme();
+  const bg = inverted ? '#fafafa' : theme.action;
+  const fg = inverted ? '#171717' : theme.actionText;
   return (
     <Pressable
       onPress={onPress}
@@ -128,7 +142,7 @@ export function PrimaryButton({
       style={({ pressed }) => [
         styles.primaryBtn,
         {
-          backgroundColor: theme.action,
+          backgroundColor: bg,
           height,
           opacity: disabled ? 0.5 : pressed ? 0.85 : 1,
         },
@@ -136,7 +150,7 @@ export function PrimaryButton({
       ]}
     >
       {icon}
-      <Text style={[styles.primaryBtnText, { color: theme.actionText }]}>{label}</Text>
+      <Text style={[styles.primaryBtnText, { color: fg }]}>{label}</Text>
     </Pressable>
   );
 }
