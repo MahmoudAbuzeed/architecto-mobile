@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { authService } from '@/services/auth.service';
+import { signInWithApple } from '@/lib/appleAuth';
 import { tokenStorage } from '@/lib/tokenStorage';
 import { toAppError } from '@/lib/api-error';
 import type { User } from '@/types';
@@ -20,8 +21,10 @@ interface AuthState {
   register: (email: string, password: string, name: string) => Promise<void>;
   verifyOtp: (otp: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
+  loginWithApple: () => Promise<void>;
   loadUser: () => Promise<void>;
   logout: () => void;
+  deleteAccount: () => Promise<void>;
   clearError: () => void;
 }
 
@@ -130,6 +133,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
+  loginWithApple: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const result = await signInWithApple();
+      if (!result) {
+        set({ isLoading: false });
+        return; // user cancelled or no token issued
+      }
+      const res = await authService.appleMobile(
+        result.identityToken,
+        result.fullName,
+      );
+      tokenStorage.setTokens(res.accessToken, res.refreshToken);
+      set({ user: res.user, isAuthenticated: true, isLoading: false });
+    } catch (e) {
+      set({ error: toAppError(e).message, isLoading: false });
+      throw e;
+    }
+  },
+
   loadUser: async () => {
     try {
       const user = await authService.me();
@@ -159,6 +182,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // daily store optional
     }
     set({ user: null, isAuthenticated: false, pendingVerificationEmail: null });
+  },
+
+  deleteAccount: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      await authService.deleteAccount();
+    } catch (e) {
+      set({ isLoading: false, error: toAppError(e).message });
+      throw e;
+    }
+    // Server-side account is gone — tear down the local session exactly like a
+    // sign-out (clears tokens, Google session, reminders, daily cache, state).
+    set({ isLoading: false });
+    get().logout();
   },
 
   clearError: () => set({ error: null }),

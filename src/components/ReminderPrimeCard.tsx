@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Alert, Linking, StyleSheet } from 'react-native';
+import { Linking, StyleSheet } from 'react-native';
 import { AppText, Card, MonoText, PrimaryButton } from './Primitives';
 import { useSettingsStore } from '@/store/settings.store';
+import { showDialog } from '@/store/ui.store';
 import { useTheme } from '@/theme/useTheme';
 import { strings } from '@/i18n/strings';
 
@@ -36,10 +37,19 @@ export function ReminderPrimeCard() {
         const prefs = require('@/services/prefs-sync');
         void prefs.pushNotificationPrefs?.();
       } else if (outcome === 'blocked') {
-        Alert.alert(strings.daily.remindTitle, strings.daily.remindBlocked, [
-          { text: strings.modals.ok },
-          { text: strings.rep.openSettings, onPress: () => void Linking.openSettings() },
-        ]);
+        showDialog({
+          title: strings.daily.remindTitle,
+          message: strings.daily.remindBlocked,
+          mood: 'teacher',
+          buttons: [
+            {
+              text: strings.rep.openSettings,
+              style: 'default',
+              onPress: () => void Linking.openSettings(),
+            },
+            { text: strings.modals.ok, style: 'cancel' },
+          ],
+        });
       }
     } catch {
       // Notifications not available on this build — silently skip.

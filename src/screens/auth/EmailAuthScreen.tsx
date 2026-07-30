@@ -12,6 +12,7 @@ import type { RouteProp } from '@react-navigation/native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { AppText, PrimaryButton, Screen } from '@/components/Primitives';
 import { QuipLoader } from '@/components/QuipLoader';
+import { LegalConsent } from '@/components/LegalConsent';
 import { useAuthStore } from '@/store/auth.store';
 import { useTheme } from '@/theme/useTheme';
 import { radius } from '@/theme/tokens';
@@ -216,6 +217,8 @@ export function EmailAuthScreen() {
                   : strings.auth.switchToRegister}
               </AppText>
             </Pressable>
+
+            <LegalConsent />
           </Animated.View>
 
           {isLoading && (

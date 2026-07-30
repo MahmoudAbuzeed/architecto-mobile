@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Linking,
   Platform,
@@ -37,6 +36,7 @@ import {
 } from '@/components/icons';
 import { useRepStore } from '@/store/rep.store';
 import { useSettingsStore } from '@/store/settings.store';
+import { showDialog } from '@/store/ui.store';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 import { useTtsPlayback } from '@/hooks/useTtsPlayback';
 import { useCountdown } from '@/hooks/useCountdown';
@@ -130,12 +130,14 @@ export function RepSessionScreen() {
       void playQuestion();
     } else {
       // First rep ever: explain before the OS interrupts the first hold.
-      Alert.alert(
-        strings.rep.micExplainerTitle,
-        strings.rep.micExplainerBody,
-        [
+      showDialog({
+        title: strings.rep.micExplainerTitle,
+        message: strings.rep.micExplainerBody,
+        mood: 'brain',
+        buttons: [
           {
             text: strings.rep.micExplainerCta,
+            style: 'default',
             onPress: () => {
               void (async () => {
                 const outcome = await primeVoicePermissions();
@@ -146,7 +148,7 @@ export function RepSessionScreen() {
             },
           },
         ],
-      );
+      });
     }
     return () => {
       void tts.stop();
@@ -194,25 +196,28 @@ export function RepSessionScreen() {
     if (phase === 'submitting') return;
     if (turn.kind === 'probe') {
       // Mid-probing there's a third door: bank the combined state so far.
-      Alert.alert(
-        strings.rep.closeConfirmTitle,
-        strings.rep.closeConfirmProbingBody,
-        [
+      showDialog({
+        title: strings.rep.closeConfirmTitle,
+        message: strings.rep.closeConfirmProbingBody,
+        buttons: [
           { text: strings.rep.closeConfirmStay, style: 'cancel' },
-          { text: strings.rep.gradeWhatIHave, onPress: () => finalizeLocal() },
+          {
+            text: strings.rep.gradeWhatIHave,
+            onPress: () => finalizeLocal(),
+          },
           {
             text: strings.rep.closeConfirmLeave,
             style: 'destructive',
             onPress: () => navigation.dispatch(data.action),
           },
         ],
-      );
+      });
       return;
     }
-    Alert.alert(
-      strings.rep.closeConfirmTitle,
-      strings.rep.closeConfirmBody,
-      [
+    showDialog({
+      title: strings.rep.closeConfirmTitle,
+      message: strings.rep.closeConfirmBody,
+      buttons: [
         { text: strings.rep.closeConfirmStay, style: 'cancel' },
         {
           text: strings.rep.closeConfirmLeave,
@@ -220,7 +225,7 @@ export function RepSessionScreen() {
           onPress: () => navigation.dispatch(data.action),
         },
       ],
-    );
+    });
   });
 
   // Grading finished → hand off to Feedback.

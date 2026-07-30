@@ -12,10 +12,21 @@ export const strings = {
     chipStreaks: 'Streaks',
     chipXp: 'XP',
     chipVoice: 'Voice or text',
+    apple: 'Continue with Apple',
     google: 'Continue with Google',
     email: 'Continue with email',
-    proNote:
-      'Pro on the web? It unlocks here automatically.\nNo wallet required — Archie checked.',
+  },
+  legal: {
+    agreePrefix: 'By continuing you agree to our ',
+    terms: 'Terms',
+    and: ' & ',
+    privacy: 'Privacy Policy',
+    agreeSuffix: '.',
+    sectionLabel: 'Legal & support',
+    privacyPolicy: 'Privacy Policy',
+    termsOfService: 'Terms of Service',
+    contactSupport: 'Contact support',
+    version: (v: string) => `Architecto v${v}`,
   },
   auth: {
     loginTitle: 'Welcome back.',
@@ -216,9 +227,14 @@ export const strings = {
     contentLanguage: 'Question language',
     pro: 'PRO',
     free: 'FREE',
-    proNote: 'Pro on the web unlocks here automatically.',
-    upgrade: 'Upgrade on the web',
     signOut: 'Sign out',
+    deleteAccount: 'Delete account',
+    deleteConfirmTitle: 'Delete your account?',
+    deleteConfirmBody:
+      'This permanently deletes your account, streak, XP and history. This cannot be undone.',
+    deleteConfirmCancel: 'Cancel',
+    deleteConfirmConfirm: 'Delete account',
+    deleteError: 'Couldn’t delete your account. Please try again.',
     theme: 'Theme',
     remindersTitle: 'Daily reminder',
     remindersDescription:
@@ -228,13 +244,14 @@ export const strings = {
   },
   modals: {
     paywallTitle: 'That’s a Pro move.',
+    paywallBody:
+      'This is a Pro feature. If your Pro plan is active, it unlocks here automatically.',
     aiDownTitle: 'Archie is rebooting.',
     rateLimitTitle: 'Easy, tiger.',
     offlineTitle: 'You’re offline.',
     genericTitle: 'That didn’t work.',
     ok: 'OK',
     retryLater: 'Got it',
-    upgradeCta: 'Upgrade on the web',
   },
   tabs: {
     home: 'Home',

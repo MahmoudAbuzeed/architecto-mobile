@@ -10,6 +10,7 @@
     "test": "jest"
   },
   "dependencies": {
+    "@invertase/react-native-apple-authentication": "^2.5.1",
     "@react-native-community/netinfo": "^12.0.1",
     "@react-native-google-signin/google-signin": "^16.1.2",
     "@react-native-voice/voice": "^3.2.4",

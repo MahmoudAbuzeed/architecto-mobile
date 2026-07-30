@@ -5,7 +5,6 @@ import {
   AppText,
   Card,
   Chip,
-  GhostButton,
   MonoText,
   Screen,
 } from '@/components/Primitives';
@@ -18,7 +17,8 @@ import { initials } from '@/lib/format';
 import { ARABIC_DIALECTS } from '@/lib/languages';
 import { useAuthStore, selectIsPro } from '@/store/auth.store';
 import { useSettingsStore } from '@/store/settings.store';
-import { WEB_PRICING_URL } from '@/services/env';
+import { showDialog } from '@/store/ui.store';
+import { APP_VERSION, PRIVACY_URL, SUPPORT_EMAIL, TERMS_URL } from '@/services/env';
 
 const THEME_MODES: ReadonlyArray<{ mode: ThemeMode; label: string }> = [
   { mode: 'dark', label: 'Dark' },
@@ -31,10 +31,38 @@ export function ProfileScreen() {
   const user = useAuthStore((s) => s.user);
   const isPro = useAuthStore((s) => selectIsPro(s));
   const logout = useAuthStore((s) => s.logout);
+  const deleteAccount = useAuthStore((s) => s.deleteAccount);
   const contentLanguage = useSettingsStore((s) => s.contentLanguage);
   const setContentLanguage = useSettingsStore((s) => s.setContentLanguage);
   const themeMode = useThemeStore((s) => s.mode);
   const setThemeMode = useThemeStore((s) => s.setMode);
+
+  const openUrl = (url: string) => {
+    void Linking.openURL(url).catch(() => undefined);
+  };
+
+  const confirmDelete = () => {
+    showDialog({
+      title: strings.profile.deleteConfirmTitle,
+      message: strings.profile.deleteConfirmBody,
+      mood: 'meditating',
+      buttons: [
+        { text: strings.profile.deleteConfirmCancel, style: 'cancel' },
+        {
+          text: strings.profile.deleteConfirmConfirm,
+          style: 'destructive',
+          onPress: () => {
+            void deleteAccount().catch(() => {
+              showDialog({
+                title: strings.profile.deleteError,
+                buttons: [{ text: strings.modals.ok, style: 'default' }],
+              });
+            });
+          },
+        },
+      ],
+    });
+  };
 
   return (
     <Screen>
@@ -85,26 +113,8 @@ export function ProfileScreen() {
           </Card>
         </Animated.View>
 
-        {/* Upgrade nudge */}
-        {!isPro && (
-          <Animated.View entering={FadeInUp.delay(80)}>
-            <Card style={styles.upgradeCard}>
-              <AppText secondary style={styles.proNote}>
-                {strings.profile.proNote}
-              </AppText>
-              <GhostButton
-                height={44}
-                label={strings.profile.upgrade}
-                onPress={() => {
-                  void Linking.openURL(WEB_PRICING_URL);
-                }}
-              />
-            </Card>
-          </Animated.View>
-        )}
-
         {/* Content language */}
-        <Animated.View entering={FadeInUp.delay(120)}>
+        <Animated.View entering={FadeInUp.delay(80)}>
           <Card style={styles.sectionCard}>
             <AppText style={styles.sectionLabel}>
               {strings.profile.contentLanguage}
@@ -135,12 +145,12 @@ export function ProfileScreen() {
         </Animated.View>
 
         {/* Daily reminder */}
-        <Animated.View entering={FadeInUp.delay(160)}>
+        <Animated.View entering={FadeInUp.delay(120)}>
           <ReminderSettingsCard />
         </Animated.View>
 
         {/* Theme */}
-        <Animated.View entering={FadeInUp.delay(200)}>
+        <Animated.View entering={FadeInUp.delay(160)}>
           <Card style={styles.sectionCard}>
             <AppText style={styles.sectionLabel}>
               {strings.profile.theme}
@@ -158,6 +168,42 @@ export function ProfileScreen() {
           </Card>
         </Animated.View>
 
+        {/* Legal & support */}
+        <Animated.View entering={FadeInUp.delay(200)}>
+          <Card style={styles.sectionCard}>
+            <AppText style={styles.sectionLabel}>
+              {strings.legal.sectionLabel}
+            </AppText>
+            <Pressable
+              onPress={() => openUrl(PRIVACY_URL)}
+              style={({ pressed }) => [styles.linkRow, { opacity: pressed ? 0.6 : 1 }]}
+            >
+              <AppText secondary style={styles.linkText}>
+                {strings.legal.privacyPolicy}
+              </AppText>
+            </Pressable>
+            <Pressable
+              onPress={() => openUrl(TERMS_URL)}
+              style={({ pressed }) => [styles.linkRow, { opacity: pressed ? 0.6 : 1 }]}
+            >
+              <AppText secondary style={styles.linkText}>
+                {strings.legal.termsOfService}
+              </AppText>
+            </Pressable>
+            <Pressable
+              onPress={() => openUrl(`mailto:${SUPPORT_EMAIL}`)}
+              style={({ pressed }) => [styles.linkRow, { opacity: pressed ? 0.6 : 1 }]}
+            >
+              <AppText secondary style={styles.linkText}>
+                {strings.legal.contactSupport}
+              </AppText>
+            </Pressable>
+            <AppText dim style={styles.version}>
+              {strings.legal.version(APP_VERSION)}
+            </AppText>
+          </Card>
+        </Animated.View>
+
         {/* Sign out */}
         <Animated.View entering={FadeInUp.delay(240)}>
           <Pressable
@@ -172,6 +218,21 @@ export function ProfileScreen() {
           >
             <AppText style={[styles.signOutText, { color: theme.red }]}>
               {strings.profile.signOut}
+            </AppText>
+          </Pressable>
+        </Animated.View>
+
+        {/* Delete account (App Store Guideline 5.1.1(v)) */}
+        <Animated.View entering={FadeInUp.delay(280)}>
+          <Pressable
+            onPress={confirmDelete}
+            style={({ pressed }) => [
+              styles.deleteRow,
+              { opacity: pressed ? 0.6 : 1 },
+            ]}
+          >
+            <AppText dim style={styles.deleteText}>
+              {strings.profile.deleteAccount}
             </AppText>
           </Pressable>
         </Animated.View>
@@ -208,12 +269,13 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   planText: { fontSize: 10, letterSpacing: 1.5 },
-  upgradeCard: { padding: 16, gap: 12 },
-  proNote: { fontSize: 12.5, lineHeight: 18 },
   sectionCard: { padding: 16, gap: 10 },
   sectionLabel: { fontSize: 13, fontWeight: '600' },
   sectionDescription: { fontSize: 11.5, lineHeight: 16 },
   chipRow: { flexDirection: 'row', gap: 8 },
+  linkRow: { paddingVertical: 7 },
+  linkText: { fontSize: 13.5 },
+  version: { fontSize: 11, marginTop: 2 },
   signOut: {
     borderWidth: 1,
     borderRadius: radius.md,
@@ -222,4 +284,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   signOutText: { fontSize: 14, fontWeight: '600' },
+  deleteRow: { alignItems: 'center', paddingVertical: 8 },
+  deleteText: { fontSize: 13, fontWeight: '500' },
 });

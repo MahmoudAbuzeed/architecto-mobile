@@ -155,21 +155,31 @@ export function PrimaryButton({
   );
 }
 
-/** Bordered / transparent secondary button. */
+/** Bordered / transparent secondary button. `danger` renders red text (for
+ * destructive dialog actions). */
 export function GhostButton({
   label,
   onPress,
+  icon,
   bordered = true,
+  danger,
   style,
   height = 50,
 }: {
   label: string;
   onPress: () => void;
+  icon?: React.ReactNode;
   bordered?: boolean;
+  danger?: boolean;
   style?: StyleProp<ViewStyle>;
   height?: number;
 }) {
   const theme = useTheme();
+  const textColor = danger
+    ? theme.red
+    : bordered
+      ? theme.text
+      : theme.textSecondary;
   return (
     <Pressable
       onPress={onPress}
@@ -184,14 +194,8 @@ export function GhostButton({
         style,
       ]}
     >
-      <Text
-        style={[
-          styles.ghostBtnText,
-          { color: bordered ? theme.text : theme.textSecondary },
-        ]}
-      >
-        {label}
-      </Text>
+      {icon}
+      <Text style={[styles.ghostBtnText, { color: textColor }]}>{label}</Text>
     </Pressable>
   );
 }
@@ -266,8 +270,10 @@ const styles = StyleSheet.create({
   primaryBtnText: { fontSize: 15, fontWeight: '600' },
   ghostBtn: {
     borderRadius: radius.md,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
   },
   ghostBtnText: { fontSize: 14, fontWeight: '600' },
   chip: {

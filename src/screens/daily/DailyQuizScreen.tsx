@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import {
   useNavigation,
   usePreventRemove,
@@ -25,6 +25,7 @@ import { ProgressBar } from '@/components/ProgressBar';
 import { ReminderPrimeCard } from '@/components/ReminderPrimeCard';
 import { useDailyStore } from '@/store/daily.store';
 import { useSettingsStore } from '@/store/settings.store';
+import { showDialog } from '@/store/ui.store';
 import { useTheme } from '@/theme/useTheme';
 import { strings } from '@/i18n/strings';
 import { GENERATING_QUIPS } from '@/lib/quips';
@@ -61,14 +62,18 @@ export function DailyQuizScreen() {
 
   // Guard leaving mid-quiz (before results), matching the rep flow.
   usePreventRemove(phase.kind === 'answering' && hasAnswers, ({ data }) => {
-    Alert.alert(strings.daily.leaveQuizTitle, strings.daily.leaveQuizBody, [
-      { text: strings.daily.leaveQuizStay, style: 'cancel' },
-      {
-        text: strings.daily.leaveQuizLeave,
-        style: 'destructive',
-        onPress: () => navigation.dispatch(data.action),
-      },
-    ]);
+    showDialog({
+      title: strings.daily.leaveQuizTitle,
+      message: strings.daily.leaveQuizBody,
+      buttons: [
+        { text: strings.daily.leaveQuizStay, style: 'cancel' },
+        {
+          text: strings.daily.leaveQuizLeave,
+          style: 'destructive',
+          onPress: () => navigation.dispatch(data.action),
+        },
+      ],
+    });
   });
 
   const doSubmit = useCallback(async () => {

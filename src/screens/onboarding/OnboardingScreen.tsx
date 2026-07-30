@@ -18,7 +18,15 @@ import {
   Screen,
 } from '@/components/Primitives';
 import { ArchieLottie } from '@/components/ArchieCircle';
-import { BoltIcon, FlameOutlineIcon, MicIcon } from '@/components/icons';
+import {
+  BoltIcon,
+  FlameOutlineIcon,
+  GoogleIcon,
+  MailIcon,
+  MicIcon,
+} from '@/components/icons';
+import { LegalConsent } from '@/components/LegalConsent';
+import { AppleSignInButton } from '@/components/AppleSignInButton';
 import { useAuthStore } from '@/store/auth.store';
 import { useTheme } from '@/theme/useTheme';
 import { radius } from '@/theme/tokens';
@@ -44,6 +52,7 @@ export function OnboardingScreen() {
   const theme = useTheme();
   const navigation = useNavigation<Nav>();
   const loginWithGoogle = useAuthStore((s) => s.loginWithGoogle);
+  const loginWithApple = useAuthStore((s) => s.loginWithApple);
   const isLoading = useAuthStore((s) => s.isLoading);
   const error = useAuthStore((s) => s.error);
 
@@ -68,8 +77,17 @@ export function OnboardingScreen() {
     }
   };
 
+  const onApple = async () => {
+    try {
+      await loginWithApple();
+    } catch {
+      // Store surfaces the error; nothing else to do here.
+    }
+  };
+
   return (
     <Screen edges={['top', 'bottom']} style={styles.root}>
+      <View style={styles.topSpacer} />
       <View style={styles.hero}>
         <Animated.View entering={FadeInUp.delay(60)} style={bobStyle}>
           <ArchieLottie mood="brain" size={120} />
@@ -103,31 +121,41 @@ export function OnboardingScreen() {
         </Animated.View>
       </View>
 
+      <View style={styles.midSpacer} />
+
       <Animated.View entering={FadeInUp.delay(460)} style={styles.footer}>
         {error != null && (
           <AppText style={[styles.error, { color: theme.red }]}>{error}</AppText>
         )}
+        <AppleSignInButton onPress={() => void onApple()} />
         <PrimaryButton
           label={strings.onboarding.google}
+          icon={<GoogleIcon size={18} />}
           onPress={() => void onGoogle()}
           disabled={isLoading}
         />
         <GhostButton
           label={strings.onboarding.email}
+          icon={<MailIcon size={17} color={theme.text} strokeWidth={2} />}
           onPress={() => navigation.navigate('EmailAuth', { mode: 'register' })}
         />
-        <AppText dim style={styles.proNote}>
-          {strings.onboarding.proNote}
-        </AppText>
+        <LegalConsent />
       </Animated.View>
+
+      <View style={styles.bottomSpacer} />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   root: { paddingHorizontal: 28, paddingBottom: 12 },
+  // Free vertical space is split across three spacers instead of pooling into
+  // two big voids (above the logo + before the CTA). Weights keep the hero a
+  // touch above center and lift the buttons slightly off the bottom edge.
+  topSpacer: { flex: 0.9 },
+  midSpacer: { flex: 1 },
+  bottomSpacer: { flex: 0.5 },
   hero: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 18,
@@ -163,10 +191,4 @@ const styles = StyleSheet.create({
   chipText: { fontSize: 11.5, fontWeight: '500' },
   footer: { gap: 10 },
   error: { fontSize: 12.5, lineHeight: 17, textAlign: 'center' },
-  proNote: {
-    fontSize: 11.5,
-    lineHeight: 17,
-    textAlign: 'center',
-    marginTop: 6,
-  },
 });

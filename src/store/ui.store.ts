@@ -1,17 +1,34 @@
 import { create } from 'zustand';
 import type { AppError } from '@/lib/api-error';
+import type { ArchieMood } from '@/components/ArchieCircle';
 
 /**
  * Global modal host state. The api interceptor routes coded backend errors
- * here; ModalHost (mounted once in App.tsx) renders whatever is active.
+ * here; ModalHost (mounted once in App.tsx) renders whatever is active. The
+ * `dialog` variant is our themed replacement for native Alert.alert — see
+ * showDialog below.
  */
+
+/** A dialog button, mirroring the shape of a native Alert button. */
+export interface DialogButton {
+  text: string;
+  style?: 'default' | 'cancel' | 'destructive';
+  onPress?: () => void;
+}
 
 export type AppModal =
   | { type: 'paywall'; message: string }
   | { type: 'ai-unavailable'; message: string }
   | { type: 'rate-limit'; message: string }
   | { type: 'offline'; message: string }
-  | { type: 'generic'; message: string };
+  | { type: 'generic'; message: string }
+  | {
+      type: 'dialog';
+      title: string;
+      message?: string;
+      buttons: DialogButton[];
+      mood?: ArchieMood;
+    };
 
 interface UiState {
   activeModal: AppModal | null;
@@ -24,6 +41,20 @@ export const useUiStore = create<UiState>((set) => ({
   show: (modal) => set({ activeModal: modal }),
   dismiss: () => set({ activeModal: null }),
 }));
+
+/**
+ * Imperative helper mirroring Alert.alert — call it from anywhere (render or
+ * not, e.g. usePreventRemove callbacks) to surface a themed confirm dialog
+ * instead of a stock OS alert.
+ */
+export function showDialog(config: {
+  title: string;
+  message?: string;
+  buttons: DialogButton[];
+  mood?: ArchieMood;
+}): void {
+  useUiStore.getState().show({ type: 'dialog', ...config });
+}
 
 /**
  * Map a normalized error onto a modal. Paywall and AI-outage always surface

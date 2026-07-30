@@ -32,7 +32,13 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-const AUTH_PATHS = ['/auth/login', '/auth/register', '/auth/refresh', '/auth/google/mobile'];
+const AUTH_PATHS = [
+  '/auth/login',
+  '/auth/register',
+  '/auth/refresh',
+  '/auth/google/mobile',
+  '/auth/apple/mobile',
+];
 
 function isAuthPath(url?: string): boolean {
   return !!url && AUTH_PATHS.some((p) => url.includes(p));
