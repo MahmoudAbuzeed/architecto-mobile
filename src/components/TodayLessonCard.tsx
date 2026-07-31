@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useNavigation, CompositeNavigationProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -7,9 +7,13 @@ import { AppText, Card, MonoText, PrimaryButton } from './Primitives';
 import { FlameOutlineIcon, PlayIcon } from './icons';
 import { useDailyStore } from '@/store/daily.store';
 import { useTracksStore } from '@/store/tracks.store';
+import { useAuthStore, selectIsPro } from '@/store/auth.store';
+import { useUiStore } from '@/store/ui.store';
+import { useSettingsStore } from '@/store/settings.store';
 import { useTheme } from '@/theme/useTheme';
 import { ELEVATED_FG } from '@/theme/tokens';
 import { strings } from '@/i18n/strings';
+import { journeyCopyFor } from '@/i18n/journey-copy';
 import { todayLocalISO } from '@/lib/dates';
 import type { RootStackParamList, TabParamList } from '@/app/navigation/types';
 
@@ -32,6 +36,9 @@ export function TodayLessonCard() {
   const isLoading = useDailyStore((s) => s.isLoading);
   const unsupported = useDailyStore((s) => s.unsupported);
   const primaryTrack = useTracksStore((s) => s.tracks?.primaryTrack);
+  const isPro = useAuthStore((s) => selectIsPro(s));
+  const contentLanguage = useSettingsStore((s) => s.contentLanguage);
+  const copy = journeyCopyFor(contentLanguage);
 
   if (unsupported || !primaryTrack) return null;
 
@@ -54,7 +61,7 @@ export function TodayLessonCard() {
         numberOfLines={1}
         style={styles.meta}
       >
-        {strings.home.lessonMeta(daily?.lesson?.estimatedMinutes ?? 5)}
+        {strings.home.lessonMeta}
       </MonoText>
     </View>
   );
@@ -95,11 +102,22 @@ export function TodayLessonCard() {
         {daily.topic?.title ?? daily.lesson?.title}
       </AppText>
       {completed ? (
-        <AppText secondary numberOfLines={2} style={styles.body}>
-          {daily.attempt
-            ? strings.home.lessonDoneSub(daily.attempt.score, daily.attempt.total)
-            : strings.home.lessonDoneTitle}
-        </AppText>
+        <>
+          <AppText secondary numberOfLines={2} style={styles.body}>
+            {daily.attempt
+              ? strings.home.lessonDoneSub(
+                  daily.attempt.score,
+                  daily.attempt.total,
+                )
+              : strings.home.lessonDoneTitle}
+          </AppText>
+          <View style={styles.streakRow}>
+            <FlameOutlineIcon size={14} color={theme.accent} />
+            <AppText secondary style={styles.streakText}>
+              {strings.home.lessonStreakDay(daily.streak.current)}
+            </AppText>
+          </View>
+        </>
       ) : (
         <>
           {daily.lesson?.hook ? (
@@ -123,6 +141,22 @@ export function TodayLessonCard() {
         label={completed ? strings.home.reviewLesson : strings.home.startLesson}
         onPress={() => navigation.navigate('DailyLesson')}
       />
+      {/* Free users who finished today get one quiet "keep going" upsell. */}
+      {completed && !isPro && (
+        <Pressable
+          onPress={() =>
+            useUiStore
+              .getState()
+              .show({ type: 'paywall', message: strings.modals.paywallBody })
+          }
+          hitSlop={8}
+          style={({ pressed }) => [styles.upsell, { opacity: pressed ? 0.6 : 1 }]}
+        >
+          <MonoText weight="medium" color={ELEVATED_FG.dim} style={styles.upsellText}>
+            {copy.keepGoingUpsell}
+          </MonoText>
+        </Pressable>
+      )}
     </Card>
   );
 }
@@ -142,4 +176,6 @@ const styles = StyleSheet.create({
   streakRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 10 },
   streakText: { fontSize: 12.5, color: ELEVATED_FG.secondary },
   spacer: { flex: 1, minHeight: 12 },
+  upsell: { marginTop: 10, alignItems: 'center' },
+  upsellText: { fontSize: 10.5, letterSpacing: 0.5 },
 });

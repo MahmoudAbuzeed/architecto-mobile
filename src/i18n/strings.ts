@@ -66,7 +66,8 @@ export const strings = {
     topicsProgress: (done: number, total: number) => `${done}/${total} topics`,
     // Daily-lesson hero + demoted rep + tracks section.
     todaysLesson: "TODAY'S LESSON",
-    lessonMeta: (min: number) => `~${min} MIN · READ + LISTEN`,
+    // Every micro-session is ~5 min — a fixed label, never a catalog duration.
+    lessonMeta: '~5 MIN · READ + LISTEN',
     preparingLesson: 'Lining up today’s lesson…',
     startLesson: 'Start today’s lesson',
     reviewLesson: 'Review lesson',

@@ -294,6 +294,9 @@ export interface DailyLessonPayload {
   questions: DailyQuizQuestion[] | null;
   attempt: DailyAttempt | null;
   streak: DailyStreak;
+  // On a `completed` payload this is TOMORROW's topic (used for the "come back
+  // tomorrow" copy). Absent on older backends → treat as null.
+  nextTopic?: { slug: string; title: string } | null;
 }
 
 export interface DailyQuizResult {
@@ -332,6 +335,11 @@ export interface TopicRow {
   slug: string;
   title: string;
   status: 'locked' | 'available' | 'completed';
+  /**
+   * Catalog value (the web's long-form estimate). NEVER rendered on mobile —
+   * every micro-session reads as ~5 MIN. Kept because the shared endpoint
+   * sends it and the web still uses it.
+   */
   estimatedMinutes?: number;
   prerequisites?: string[];
   missingPrerequisites?: Array<{ slug: string; title: string }>;

@@ -19,10 +19,14 @@ import {
 } from '@/components/Primitives';
 import { ProgressBar } from '@/components/ProgressBar';
 import { QuipLoader } from '@/components/QuipLoader';
-import { ChevronRightIcon } from '@/components/icons';
+import { ChevronRightIcon, FlameOutlineIcon } from '@/components/icons';
 import { useTracksStore } from '@/store/tracks.store';
+import { useDailyStore } from '@/store/daily.store';
+import { useDailyDose } from '@/hooks/useDailyDose';
+import { useSettingsStore } from '@/store/settings.store';
 import { useTheme } from '@/theme/useTheme';
 import { strings } from '@/i18n/strings';
+import { journeyCopyFor } from '@/i18n/journey-copy';
 import { THINKING_QUIPS } from '@/lib/quips';
 import { trackEmoji, categoryInitial } from '@/lib/trackVisuals';
 import type {
@@ -52,6 +56,10 @@ export function TrackOverviewScreen() {
   const fetchTracks = useTracksStore((s) => s.fetchTracks);
   const fetchDetail = useTracksStore((s) => s.fetchDetail);
   const selectTrack = useTracksStore((s) => s.selectTrack);
+  const fetchDaily = useDailyStore((s) => s.fetch);
+  const dose = useDailyDose();
+  const contentLanguage = useSettingsStore((s) => s.contentLanguage);
+  const copy = journeyCopyFor(contentLanguage);
 
   // Which track this screen shows: the route param (an additional track opened
   // from Home) or the primary. `detail` is a single slot, so navigating an
@@ -68,6 +76,11 @@ export function TrackOverviewScreen() {
   useEffect(() => {
     if (viewTrack) void fetchDetail(viewTrack);
   }, [viewTrack, fetchDetail]);
+
+  // Warm the daily dose so the TODAY card can point at today's node.
+  useEffect(() => {
+    void fetchDaily();
+  }, [fetchDaily]);
 
   // First load, nothing cached yet.
   if (!tracks && !error) {
@@ -169,6 +182,44 @@ export function TrackOverviewScreen() {
           <ProgressBar fraction={fraction} color={hex} height={7} />
         </Card>
 
+        {/* TODAY — deep-links to the category path, auto-scrolled to the node.
+            Primary track only; hidden on old backends / track complete. */}
+        {isPrimaryView &&
+          dose.isFresh &&
+          !dose.unsupported &&
+          !!dose.todaySlug &&
+          !dose.trackComplete && (
+            <Card style={[styles.todayCard, { borderColor: `${hex}55` }]}>
+              <MonoText weight="semiBold" color={hex} style={styles.todayKicker}>
+                {copy.todayKicker}
+              </MonoText>
+              <AppText style={styles.todayTitle} numberOfLines={2}>
+                {dose.todayTitle}
+              </AppText>
+              {dose.doseCompleted ? (
+                <View style={styles.todayDoneRow}>
+                  <FlameOutlineIcon size={15} color={hex} />
+                  <AppText secondary style={styles.todayDoneText}>
+                    {copy.doneTodaySub(dose.streakCurrent)}
+                  </AppText>
+                </View>
+              ) : (
+                <PrimaryButton
+                  height={46}
+                  label={copy.continueCta}
+                  onPress={() =>
+                    dose.todayCategory &&
+                    navigation.navigate('CategoryTopics', {
+                      category: dose.todayCategory,
+                      name: dose.todayCategoryName ?? '',
+                      hex,
+                    })
+                  }
+                />
+              )}
+            </Card>
+          )}
+
         {/* Categories */}
         <MonoText
           weight="semiBold"
@@ -195,6 +246,7 @@ export function TrackOverviewScreen() {
                   navigation.navigate('CategoryTopics', {
                     category: cat.slug,
                     name: cat.name,
+                    hex,
                   })
                 }
                 style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
@@ -206,9 +258,27 @@ export function TrackOverviewScreen() {
                     </AppText>
                   </View>
                   <View style={styles.categoryBody}>
-                    <AppText style={styles.categoryName} numberOfLines={1}>
-                      {cat.name}
-                    </AppText>
+                    <View style={styles.categoryNameRow}>
+                      <AppText style={styles.categoryName} numberOfLines={1}>
+                        {cat.name}
+                      </AppText>
+                      {isPrimaryView &&
+                        dose.isFresh &&
+                        !dose.doseCompleted &&
+                        dose.todayCategory === cat.slug && (
+                          <View
+                            style={[styles.todayBadge, { backgroundColor: `${hex}2E` }]}
+                          >
+                            <MonoText
+                              weight="bold"
+                              color={hex}
+                              style={styles.todayBadgeText}
+                            >
+                              {copy.todayKicker}
+                            </MonoText>
+                          </View>
+                        )}
+                    </View>
                     <MonoText
                       weight="medium"
                       color={theme.textDim}
@@ -268,8 +338,25 @@ const styles = StyleSheet.create({
   },
   categoryIcon: { fontSize: 17, fontWeight: '800' },
   categoryBody: { flex: 1, minWidth: 0, gap: 6 },
-  categoryName: { fontSize: 14.5, fontWeight: '600' },
+  categoryNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minWidth: 0,
+  },
+  categoryName: { flexShrink: 1, minWidth: 0, fontSize: 14.5, fontWeight: '600' },
   categoryMeta: { fontSize: 10.5 },
+  todayBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 5,
+  },
+  todayBadgeText: { fontSize: 8.5, letterSpacing: 1 },
+  todayCard: { padding: 16, gap: 8 },
+  todayKicker: { fontSize: 10.5, letterSpacing: 1.5 },
+  todayTitle: { fontSize: 17, fontWeight: '700', letterSpacing: -0.2, lineHeight: 22 },
+  todayDoneRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
+  todayDoneText: { fontSize: 12.5, lineHeight: 18 },
   emptyCard: { padding: 18, gap: 12 },
   emptyTitle: { fontSize: 18, fontWeight: '700' },
   emptyBody: { fontSize: 13, lineHeight: 19.5 },

@@ -42,6 +42,7 @@ export function DailyLessonScreen() {
   const navigation = useNavigation<Nav>();
   const { params } = useRoute<RouteProp<RootStackParamList, 'DailyLesson'>>();
   const topicSlug = params?.topicSlug;
+  const review = params?.review ?? false;
   const { payload: daily, isLoading, error, fetch, isTopic } =
     useLessonSource(topicSlug);
   const contentLanguage = useSettingsStore((s) => s.contentLanguage);
@@ -177,7 +178,9 @@ export function DailyLessonScreen() {
   }
 
   const lesson = daily.lesson!;
-  const completed = daily.status === 'completed';
+  // Hide the quiz CTA when the lesson is already done OR opened as a read-only
+  // review (a free user re-reading a completed topic — the quiz stays Pro).
+  const completed = daily.status === 'completed' || review;
   const rightSlot = (
     <MonoText weight="medium" color={theme.textDim} style={styles.headerMeta}>
       {daily.streak.current > 0
