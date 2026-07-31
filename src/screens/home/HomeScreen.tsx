@@ -30,6 +30,7 @@ export function HomeScreen() {
   const tracks = useTracksStore((s) => s.tracks);
   const fetchTracks = useTracksStore((s) => s.fetchTracks);
   const fetchDaily = useDailyStore((s) => s.fetch);
+  const dailyUnsupported = useDailyStore((s) => s.unsupported);
   const user = useAuthStore((s) => s.user);
 
   useFocusEffect(
@@ -99,15 +100,20 @@ export function HomeScreen() {
           <WeekStrip week={streak.week} />
         </Card>
 
-        {/* TODAY — the daily activities carousel */}
-        <MonoText
-          weight="semiBold"
-          color={theme.textSecondary}
-          style={styles.sectionKicker}
-        >
-          {strings.home.todaySection}
-        </MonoText>
-        <DailyCarousel />
+        {/* TODAY — the daily lesson (info + MCQ). Hidden with its kicker when
+            there's no lesson to show (old backend / no track picked). */}
+        {!dailyUnsupported && !!tracks?.primaryTrack && (
+          <>
+            <MonoText
+              weight="semiBold"
+              color={theme.textSecondary}
+              style={styles.sectionKicker}
+            >
+              {strings.home.todaySection}
+            </MonoText>
+            <DailyCarousel />
+          </>
+        )}
 
         {/* Your tracks */}
         {tracks ? (

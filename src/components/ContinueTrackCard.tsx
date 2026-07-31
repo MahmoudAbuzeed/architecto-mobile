@@ -8,7 +8,6 @@ import { ProgressBar } from './ProgressBar';
 import { ChevronRightIcon } from './icons';
 import { useTheme } from '@/theme/useTheme';
 import { strings } from '@/i18n/strings';
-import { titleCaseSlug } from '@/lib/format';
 import type { ContinueTrack } from '@/types';
 import type {
   RootStackParamList,
@@ -89,29 +88,10 @@ export function ContinueTrackCard({
     );
   }
 
-  const onContinue = () => {
-    if (data.nextDrill) {
-      navigation.navigate('RepSession', {
-        drillSlug: data.nextDrill.questionSlug,
-        title: data.nextDrill.title,
-        prompt: data.nextDrill.prompt,
-        category: data.nextDrill.category,
-      });
-      return;
-    }
-    // No drill queued — land on the track's current category (or the track).
-    if (data.currentTopic) {
-      navigation.navigate('Learn', {
-        screen: 'CategoryTopics',
-        params: {
-          category: data.currentTopic.category,
-          name: titleCaseSlug(data.currentTopic.category),
-        },
-      });
-    } else {
-      navigation.navigate('Learn', { screen: 'TrackOverview' });
-    }
-  };
+  // The track advances via the daily micro-lesson now (the voice drill is
+  // retired), so "Continue" opens today's lesson — it resolves the track's
+  // current topic server-side.
+  const onContinue = () => navigation.navigate('DailyLesson');
 
   return (
     <Card style={styles.card}>

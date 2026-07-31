@@ -21,8 +21,10 @@ export type RootStackParamList = {
     xpToday: number;
   };
   // Daily micro-lesson flow (Root-level cards, like the rep group).
-  DailyLesson: { from?: 'notification' } | undefined;
-  DailyQuiz: undefined;
+  // `topicSlug` present → a specific Learn-tab topic (off the daily dose);
+  // absent → today's daily dose.
+  DailyLesson: { from?: 'notification'; topicSlug?: string } | undefined;
+  DailyQuiz: { topicSlug?: string } | undefined;
   TrackPicker: { context: 'first-pick' | 'switch' | 'start' };
 };
 

@@ -3,14 +3,22 @@ import { Platform } from 'react-native';
 // Dev: iOS simulator reaches the Mac's localhost directly; the Android
 // emulator reaches it via 10.0.2.2. Debug builds allow cleartext for this
 // host only (android/app/src/debug/AndroidManifest.xml).
-const PROD_API_URL = 'https://architecto.app/api';
+const PROD_API_URL = 'https://www.archeticto.com/api';
+
+const DEV_API_URL = Platform.select({
+  ios: 'http://localhost:3001/api',
+  android: 'http://10.0.2.2:3001/api',
+  default: 'http://localhost:3001/api',
+});
+
+// Set to true to make dev/simulator builds talk to the live prod backend
+// instead of localhost:3001. Flip back to false to return to local dev.
+const USE_PROD_IN_DEV = true;
 
 export const API_BASE_URL = __DEV__
-  ? Platform.select({
-      ios: 'http://localhost:3001/api',
-      android: 'http://10.0.2.2:3001/api',
-      default: 'http://localhost:3001/api',
-    })
+  ? USE_PROD_IN_DEV
+    ? PROD_API_URL
+    : DEV_API_URL
   : PROD_API_URL;
 
 // Hosted legal pages + support channel, surfaced from Profile and the sign-in

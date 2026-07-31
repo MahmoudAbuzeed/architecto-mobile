@@ -1,6 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import {
+  useFocusEffect,
+  useNavigation,
+  useRoute,
+  type RouteProp,
+} from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   AppText,
@@ -13,7 +18,7 @@ import { LessonMarkdown } from '@/components/LessonMarkdown';
 import { WaveBars } from '@/components/WaveBars';
 import { QuipLoader } from '@/components/QuipLoader';
 import { CloseIcon, CheckIcon, PlayIcon } from '@/components/icons';
-import { useDailyStore } from '@/store/daily.store';
+import { useLessonSource } from '@/hooks/useLessonSource';
 import { useTracksStore } from '@/store/tracks.store';
 import { useSettingsStore } from '@/store/settings.store';
 import { useTtsPlayback } from '@/hooks/useTtsPlayback';
@@ -35,10 +40,10 @@ type AudioState = 'idle' | 'fetching' | 'ready' | 'failed';
 export function DailyLessonScreen() {
   const theme = useTheme();
   const navigation = useNavigation<Nav>();
-  const daily = useDailyStore((s) => s.daily);
-  const isLoading = useDailyStore((s) => s.isLoading);
-  const error = useDailyStore((s) => s.error);
-  const fetch = useDailyStore((s) => s.fetch);
+  const { params } = useRoute<RouteProp<RootStackParamList, 'DailyLesson'>>();
+  const topicSlug = params?.topicSlug;
+  const { payload: daily, isLoading, error, fetch, isTopic } =
+    useLessonSource(topicSlug);
   const contentLanguage = useSettingsStore((s) => s.contentLanguage);
   const trackLabel = useTracksStore(
     (s) => s.tracks?.tracks.find((t) => t.track === daily?.track)?.label,
@@ -193,29 +198,31 @@ export function DailyLessonScreen() {
           {lesson.hook}
         </AppText>
 
-        {/* Voice bar */}
-        <Card style={styles.voiceCard}>
-          <Pressable
-            onPress={() => void onToggleAudio()}
-            style={styles.voiceBtn}
-            hitSlop={8}
-          >
-            {tts.isPlaying ? (
-              <View style={[styles.pauseIcon, { borderColor: theme.text }]} />
-            ) : (
-              <PlayIcon size={15} color={theme.text} />
-            )}
-            <AppText style={styles.voiceLabel}>
-              {tts.isPlaying ? strings.daily.pause : strings.daily.listen}
-            </AppText>
-          </Pressable>
-          <WaveBars active={tts.isPlaying} color={theme.action} />
-          {audioState === 'fetching' && !tts.isPlaying ? (
-            <AppText dim style={styles.audioHint}>
-              …
-            </AppText>
-          ) : null}
-        </Card>
+        {/* Voice bar — daily dose only; topic-browse has no audio endpoint. */}
+        {!isTopic && (
+          <Card style={styles.voiceCard}>
+            <Pressable
+              onPress={() => void onToggleAudio()}
+              style={styles.voiceBtn}
+              hitSlop={8}
+            >
+              {tts.isPlaying ? (
+                <View style={[styles.pauseIcon, { borderColor: theme.text }]} />
+              ) : (
+                <PlayIcon size={15} color={theme.text} />
+              )}
+              <AppText style={styles.voiceLabel}>
+                {tts.isPlaying ? strings.daily.pause : strings.daily.listen}
+              </AppText>
+            </Pressable>
+            <WaveBars active={tts.isPlaying} color={theme.action} />
+            {audioState === 'fetching' && !tts.isPlaying ? (
+              <AppText dim style={styles.audioHint}>
+                …
+              </AppText>
+            ) : null}
+          </Card>
+        )}
 
         {completed ? (
           <Card style={styles.doneBanner}>
@@ -254,7 +261,12 @@ export function DailyLessonScreen() {
         {!completed && (
           <PrimaryButton
             label={strings.daily.takeQuiz}
-            onPress={() => navigation.navigate('DailyQuiz')}
+            onPress={() =>
+              navigation.navigate(
+                'DailyQuiz',
+                topicSlug ? { topicSlug } : undefined,
+              )
+            }
             style={styles.cta}
           />
         )}

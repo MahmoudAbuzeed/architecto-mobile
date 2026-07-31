@@ -3,6 +3,8 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import {
   useNavigation,
   usePreventRemove,
+  useRoute,
+  type RouteProp,
 } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
@@ -23,7 +25,7 @@ import {
 } from '@/components/icons';
 import { ProgressBar } from '@/components/ProgressBar';
 import { ReminderPrimeCard } from '@/components/ReminderPrimeCard';
-import { useDailyStore } from '@/store/daily.store';
+import { useLessonSource } from '@/hooks/useLessonSource';
 import { useSettingsStore } from '@/store/settings.store';
 import { showDialog } from '@/store/ui.store';
 import { useTheme } from '@/theme/useTheme';
@@ -48,8 +50,9 @@ type Phase =
 export function DailyQuizScreen() {
   const theme = useTheme();
   const navigation = useNavigation<Nav>();
-  const daily = useDailyStore((s) => s.daily);
-  const submit = useDailyStore((s) => s.submit);
+  const { params } = useRoute<RouteProp<RootStackParamList, 'DailyQuiz'>>();
+  const topicSlug = params?.topicSlug;
+  const { payload: daily, submit } = useLessonSource(topicSlug);
   const contentLanguage = useSettingsStore((s) => s.contentLanguage);
   const rtl = isArabic(contentLanguage);
 

@@ -78,17 +78,6 @@ export function TrackOverviewScreen() {
     );
   }
 
-  const browseAll = (
-    <Pressable
-      onPress={() => navigation.navigate('AllDrills')}
-      style={({ pressed }) => [styles.browseAll, { opacity: pressed ? 0.7 : 1 }]}
-    >
-      <AppText secondary style={styles.browseAllText}>
-        {strings.learn.browseAll}
-      </AppText>
-    </Pressable>
-  );
-
   // No track picked (or the tracks endpoint isn't there yet).
   if (!viewTrack) {
     return (
@@ -115,7 +104,6 @@ export function TrackOverviewScreen() {
               />
             )}
           </Card>
-          {browseAll}
         </ScrollView>
       </Screen>
     );
@@ -227,8 +215,6 @@ export function TrackOverviewScreen() {
                       style={styles.categoryMeta}
                     >
                       {strings.home.topicsProgress(cat.topicsCompleted, cat.topicsTotal)}
-                      {' · '}
-                      {strings.learn.drillsProgress(cat.drillsDone, cat.drillCount)}
                     </MonoText>
                     <ProgressBar fraction={catFraction} color={hex} height={4} />
                   </View>
@@ -238,8 +224,6 @@ export function TrackOverviewScreen() {
             </Animated.View>
           );
         })}
-
-        {browseAll}
       </ScrollView>
     </Screen>
   );
@@ -289,6 +273,4 @@ const styles = StyleSheet.create({
   emptyCard: { padding: 18, gap: 12 },
   emptyTitle: { fontSize: 18, fontWeight: '700' },
   emptyBody: { fontSize: 13, lineHeight: 19.5 },
-  browseAll: { paddingVertical: 10, alignItems: 'center' },
-  browseAllText: { fontSize: 13, fontWeight: '600' },
 });

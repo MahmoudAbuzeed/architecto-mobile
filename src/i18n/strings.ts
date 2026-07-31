@@ -146,6 +146,7 @@ export const strings = {
     browseAll: 'Browse all drills →',
     startNextDrill: 'Start next drill · ~5 min',
     needsPrereqs: (titles: string) => `Unlocks after ${titles}`,
+    proBadge: 'PRO',
     noTopics: 'No topics here yet. Even Archie needs a content sprint sometimes.',
     noTrackTitle: 'No track yet.',
     noTrackBody:

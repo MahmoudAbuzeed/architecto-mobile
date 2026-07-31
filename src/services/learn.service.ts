@@ -77,4 +77,36 @@ export const learnService = {
     );
     return data;
   },
+
+  // ── Topic-browse lessons (`/learn/daily/lesson/:slug*`) — the Learn tab
+  // opens any topic's lesson + MCQ, off the once-a-day dose. ────────────
+
+  async getTopicLesson(
+    topicSlug: string,
+    language: string,
+  ): Promise<DailyLessonPayload> {
+    const { data } = await api.get<DailyLessonPayload>(
+      `/learn/daily/lesson/${encodeURIComponent(topicSlug)}`,
+      {
+        params: { language },
+        // First fetch of a topic waits on LLM generation — beyond the 60s default.
+        timeout: 120000,
+        suppressErrorModal: true,
+      },
+    );
+    return data;
+  },
+
+  async submitTopicLesson(body: {
+    topicSlug: string;
+    answers: Record<string, number>;
+    lessonId?: string;
+  }): Promise<DailySubmitResponse> {
+    const { data } = await api.post<DailySubmitResponse>(
+      `/learn/daily/lesson/${encodeURIComponent(body.topicSlug)}/submit`,
+      { answers: body.answers, lessonId: body.lessonId },
+      { suppressErrorModal: true },
+    );
+    return data;
+  },
 };
