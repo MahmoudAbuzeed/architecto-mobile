@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/theme/useTheme';
 import { radius } from '@/theme/tokens';
 import { mono } from '@/theme/typography';
+import { PressableScale } from './PressableScale';
 
 /** Safe-area screen root with the theme background. */
 export function Screen({
@@ -136,9 +137,10 @@ export function PrimaryButton({
   const bg = inverted ? '#fafafa' : theme.action;
   const fg = inverted ? '#171717' : theme.actionText;
   return (
-    <Pressable
+    <PressableScale
       onPress={onPress}
       disabled={disabled}
+      haptics={!disabled}
       style={({ pressed }) => [
         styles.primaryBtn,
         {
@@ -151,7 +153,7 @@ export function PrimaryButton({
     >
       {icon}
       <Text style={[styles.primaryBtnText, { color: fg }]}>{label}</Text>
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -181,7 +183,7 @@ export function GhostButton({
       ? theme.text
       : theme.textSecondary;
   return (
-    <Pressable
+    <PressableScale
       onPress={onPress}
       style={({ pressed }) => [
         styles.ghostBtn,
@@ -196,7 +198,7 @@ export function GhostButton({
     >
       {icon}
       <Text style={[styles.ghostBtnText, { color: textColor }]}>{label}</Text>
-    </Pressable>
+    </PressableScale>
   );
 }
 

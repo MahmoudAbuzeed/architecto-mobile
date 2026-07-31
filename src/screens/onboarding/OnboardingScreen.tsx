@@ -6,6 +6,7 @@ import Animated, {
   Easing,
   FadeInUp,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withRepeat,
   withTiming,
@@ -18,6 +19,8 @@ import {
   Screen,
 } from '@/components/Primitives';
 import { ArchieLottie } from '@/components/ArchieCircle';
+import { AuroraBackground } from '@/components/AuroraBackground';
+import { GlowHalo } from '@/components/GlowHalo';
 import {
   BoltIcon,
   FlameOutlineIcon,
@@ -30,7 +33,7 @@ import { AppleSignInButton } from '@/components/AppleSignInButton';
 import { useAuthStore } from '@/store/auth.store';
 import { useTheme } from '@/theme/useTheme';
 import { radius } from '@/theme/tokens';
-import { wordmark } from '@/theme/typography';
+import { mono, wordmark } from '@/theme/typography';
 import { strings } from '@/i18n/strings';
 import type { RootStackParamList } from '@/app/navigation/types';
 
@@ -55,16 +58,19 @@ export function OnboardingScreen() {
   const loginWithApple = useAuthStore((s) => s.loginWithApple);
   const isLoading = useAuthStore((s) => s.isLoading);
   const error = useAuthStore((s) => s.error);
+  const reduced = useReducedMotion();
 
-  // Idle bob on the brain — same float as ArchieCircle's asking state.
+  // Idle bob on the brain — same float as ArchieCircle's asking state. Gated on
+  // reduced motion (withRepeat would otherwise freeze at the -5px end value).
   const bob = useSharedValue(0);
   useEffect(() => {
+    if (reduced) return;
     bob.value = withRepeat(
       withTiming(-5, { duration: 1300, easing: Easing.inOut(Easing.quad) }),
       -1,
       true,
     );
-  }, [bob]);
+  }, [bob, reduced]);
   const bobStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: bob.value }],
   }));
@@ -87,25 +93,30 @@ export function OnboardingScreen() {
 
   return (
     <Screen edges={['top', 'bottom']} style={styles.root}>
+      <AuroraBackground intensity="full" />
       <View style={styles.topSpacer} />
       <View style={styles.hero}>
-        <Animated.View entering={FadeInUp.delay(60)} style={bobStyle}>
+        <Animated.View
+          entering={FadeInUp.delay(60).springify().damping(18).stiffness(160)}
+          style={[styles.archieWrap, bobStyle]}
+        >
+          <GlowHalo size={200} />
           <ArchieLottie mood="brain" size={120} />
         </Animated.View>
-        <Animated.View entering={FadeInUp.delay(140)}>
+        <Animated.View entering={FadeInUp.delay(140).duration(400)}>
           <MonoText weight="medium" color={theme.textSecondary} style={wordmark}>
             {strings.onboarding.wordmark}
           </MonoText>
         </Animated.View>
-        <Animated.View entering={FadeInUp.delay(220)}>
+        <Animated.View entering={FadeInUp.delay(220).duration(400)}>
           <AppText style={styles.headline}>{strings.onboarding.headline}</AppText>
         </Animated.View>
-        <Animated.View entering={FadeInUp.delay(300)}>
+        <Animated.View entering={FadeInUp.delay(300).duration(400)}>
           <AppText secondary style={styles.subtitle}>
             {strings.onboarding.subtitle}
           </AppText>
         </Animated.View>
-        <Animated.View entering={FadeInUp.delay(380)} style={styles.chipRow}>
+        <Animated.View entering={FadeInUp.delay(380).duration(400)} style={styles.chipRow}>
           <FeatureChip
             icon={<FlameOutlineIcon size={11} color={theme.accent} />}
             label={strings.onboarding.chipStreaks}
@@ -123,7 +134,7 @@ export function OnboardingScreen() {
 
       <View style={styles.midSpacer} />
 
-      <Animated.View entering={FadeInUp.delay(460)} style={styles.footer}>
+      <Animated.View entering={FadeInUp.delay(460).duration(400)} style={styles.footer}>
         {error != null && (
           <AppText style={[styles.error, { color: theme.red }]}>{error}</AppText>
         )}
@@ -160,10 +171,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 18,
   },
+  archieWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   headline: {
-    fontSize: 32,
-    fontWeight: '700',
-    lineHeight: 36,
+    fontFamily: mono.semiBold,
+    fontSize: 27,
+    lineHeight: 34,
     letterSpacing: -0.5,
     textAlign: 'center',
   },
