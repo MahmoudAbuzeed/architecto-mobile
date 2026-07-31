@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useReducedMotion } from 'react-native-reanimated';
 import {
   useFocusEffect,
   useNavigation,
@@ -15,6 +16,7 @@ import {
   Screen,
 } from '@/components/Primitives';
 import { LessonMarkdown } from '@/components/LessonMarkdown';
+import { HighlightableText } from '@/components/HighlightableText';
 import { WaveBars } from '@/components/WaveBars';
 import { QuipLoader } from '@/components/QuipLoader';
 import { CloseIcon, CheckIcon, PlayIcon } from '@/components/icons';
@@ -27,6 +29,14 @@ import { useTheme } from '@/theme/useTheme';
 import { strings } from '@/i18n/strings';
 import { GENERATING_QUIPS } from '@/lib/quips';
 import { isArabic } from '@/lib/languages';
+import { parseMarkdownBlocks } from '@/lib/markdown';
+import {
+  buildReadAlong,
+  flattenBodyWords,
+  activeWordIndex,
+  bodyBlockRanges,
+  splitWords,
+} from '@/lib/readAlong';
 import type { RootStackParamList } from '@/app/navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -50,9 +60,51 @@ export function DailyLessonScreen() {
     (s) => s.tracks?.tracks.find((t) => t.track === daily?.track)?.label,
   );
   const rtl = isArabic(contentLanguage);
+  const reducedMotion = useReducedMotion();
 
   const tts = useTtsPlayback();
   const [audioState, setAudioState] = useState<AudioState>('idle');
+  // Read-along state: `listening` turns on per-word rendering; `activeIndex` is
+  // the currently-spoken word (global index over title + hook + body).
+  const [listening, setListening] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const startedRef = useRef(false); // audio session started (playing or paused)
+
+  // Auto-scroll follow: block Ys within the markdown, the markdown's Y in the
+  // scroll content, and the viewport height.
+  const scrollRef = useRef<ScrollView>(null);
+  const blockYs = useRef<Record<number, number>>({});
+  const markdownY = useRef(0);
+  const viewportH = useRef(0);
+  const lastScrolledBlock = useRef(-1);
+
+  const lessonTitle = daily?.lesson?.title ?? '';
+  const lessonHook = daily?.lesson?.hook ?? '';
+  const lessonBody = daily?.lesson?.body ?? '';
+
+  // Spoken-word model (title + hook + body), rebuilt per lesson.
+  const readModel = useMemo(
+    () =>
+      buildReadAlong(
+        lessonTitle,
+        lessonHook,
+        flattenBodyWords(parseMarkdownBlocks(lessonBody)),
+      ),
+    [lessonTitle, lessonHook, lessonBody],
+  );
+  const titleWordCount = useMemo(() => splitWords(lessonTitle).length, [lessonTitle]);
+  const bodyRanges = useMemo(
+    () => bodyBlockRanges(parseMarkdownBlocks(lessonBody), readModel.bodyStart),
+    [lessonBody, readModel.bodyStart],
+  );
+
+  // Which body block holds the active word (-1 during the title/hook lead-in).
+  const activeBlockIndex = useMemo(() => {
+    if (activeIndex < readModel.bodyStart) return -1;
+    return bodyRanges.findIndex(
+      (r) => activeIndex >= r.startIndex && activeIndex < r.startIndex + r.count,
+    );
+  }, [activeIndex, bodyRanges, readModel.bodyStart]);
 
   // Ensure today's payload is present (cold notification entry).
   useEffect(() => {
@@ -60,36 +112,79 @@ export function DailyLessonScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once per mount
   }, []);
 
-  // Stop audio when the screen loses focus.
+  // Stop audio + clear the read-along when the screen loses focus.
   useFocusEffect(
     useCallback(() => {
       return () => {
         void tts.stop();
+        startedRef.current = false;
+        setListening(false);
+        setActiveIndex(-1);
       };
     }, [tts]),
   );
 
+  // Follow the read with the scroll view — only when the active block changes.
+  useEffect(() => {
+    if (!listening || activeBlockIndex < 0) return;
+    if (lastScrolledBlock.current === activeBlockIndex) return;
+    lastScrolledBlock.current = activeBlockIndex;
+    const by = blockYs.current[activeBlockIndex];
+    if (by == null) return;
+    const target = Math.max(0, markdownY.current + by - viewportH.current * 0.35);
+    scrollRef.current?.scrollTo({ y: target, animated: !reducedMotion });
+  }, [activeBlockIndex, listening, reducedMotion]);
+
+  const onProgress = useCallback(
+    (positionMs: number, durationMs: number) => {
+      if (durationMs <= 0) return;
+      const idx = activeWordIndex(readModel, positionMs / durationMs);
+      setActiveIndex((prev) => (prev === idx ? prev : idx));
+    },
+    [readModel],
+  );
+
   const onToggleAudio = useCallback(async () => {
     if (tts.isPlaying) {
-      await tts.stop();
+      await tts.pause();
+      return;
+    }
+    // Paused mid-track → resume where we left off (keeps the highlight).
+    if (startedRef.current) {
+      await tts.resume();
       return;
     }
     if (!daily?.topic) return;
     try {
       setAudioState('fetching');
-      const path = `/learn/daily/audio?track=${encodeURIComponent(daily.track)}`;
+      const path = isTopic
+        ? `/learn/daily/lesson/${encodeURIComponent(daily.topic.slug)}/audio`
+        : `/learn/daily/audio?track=${encodeURIComponent(daily.track)}`;
       const file = await ttsService.getOrFetch(
         path,
         contentLanguage,
         `${daily.topic.slug}|${daily.date}`,
       );
       setAudioState('ready');
-      await tts.play(file);
+      startedRef.current = true;
+      lastScrolledBlock.current = -1;
+      setListening(true);
+      await tts.play(
+        file,
+        () => {
+          startedRef.current = false;
+          setListening(false);
+          setActiveIndex(-1);
+        },
+        onProgress,
+      );
     } catch {
       // Audio is enhancement — the lesson is on screen. Degrade silently.
       setAudioState('failed');
+      startedRef.current = false;
+      setListening(false);
     }
-  }, [tts, daily, contentLanguage]);
+  }, [tts, daily, isTopic, contentLanguage, onProgress]);
 
   const kicker = trackLabel
     ? `${strings.daily.kicker} · ${trackLabel.toUpperCase()}`
@@ -189,43 +284,55 @@ export function DailyLessonScreen() {
     </MonoText>
   );
 
+  const accent = theme.accent;
+
   return (
     <Screen edges={['top', 'bottom']}>
       {header(rightSlot)}
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        onLayout={(e) => (viewportH.current = e.nativeEvent.layout.height)}
       >
-        <AppText style={[styles.title, rtl && styles.rtl]}>{lesson.title}</AppText>
-        <AppText secondary style={[styles.hook, rtl && styles.rtl]}>
-          {lesson.hook}
-        </AppText>
+        <HighlightableText
+          text={lesson.title}
+          startIndex={0}
+          activeIndex={listening ? activeIndex : -1}
+          accent={accent}
+          style={[styles.title, rtl && styles.rtl]}
+        />
+        <HighlightableText
+          text={lesson.hook}
+          startIndex={titleWordCount}
+          activeIndex={listening ? activeIndex : -1}
+          accent={accent}
+          style={[styles.hook, rtl && styles.rtl]}
+        />
 
-        {/* Voice bar — daily dose only; topic-browse has no audio endpoint. */}
-        {!isTopic && (
-          <Card style={styles.voiceCard}>
-            <Pressable
-              onPress={() => void onToggleAudio()}
-              style={styles.voiceBtn}
-              hitSlop={8}
-            >
-              {tts.isPlaying ? (
-                <View style={[styles.pauseIcon, { borderColor: theme.text }]} />
-              ) : (
-                <PlayIcon size={15} color={theme.text} />
-              )}
-              <AppText style={styles.voiceLabel}>
-                {tts.isPlaying ? strings.daily.pause : strings.daily.listen}
-              </AppText>
-            </Pressable>
-            <WaveBars active={tts.isPlaying} color={theme.action} />
-            {audioState === 'fetching' && !tts.isPlaying ? (
-              <AppText dim style={styles.audioHint}>
-                …
-              </AppText>
-            ) : null}
-          </Card>
-        )}
+        {/* Read-along voice bar (daily dose + browsed topics). */}
+        <Card style={styles.voiceCard}>
+          <Pressable
+            onPress={() => void onToggleAudio()}
+            style={styles.voiceBtn}
+            hitSlop={8}
+          >
+            {tts.isPlaying ? (
+              <View style={[styles.pauseIcon, { borderColor: theme.text }]} />
+            ) : (
+              <PlayIcon size={15} color={theme.text} />
+            )}
+            <AppText style={styles.voiceLabel}>
+              {tts.isPlaying ? strings.daily.pause : strings.daily.listen}
+            </AppText>
+          </Pressable>
+          <WaveBars active={tts.isPlaying} color={theme.action} />
+          {audioState === 'fetching' && !tts.isPlaying ? (
+            <AppText dim style={styles.audioHint}>
+              …
+            </AppText>
+          ) : null}
+        </Card>
 
         {completed ? (
           <Card style={styles.doneBanner}>
@@ -240,7 +347,19 @@ export function DailyLessonScreen() {
           </Card>
         ) : null}
 
-        <LessonMarkdown body={lesson.body} rtl={rtl} />
+        <View onLayout={(e) => (markdownY.current = e.nativeEvent.layout.y)}>
+          <LessonMarkdown
+            body={lesson.body}
+            rtl={rtl}
+            readAlong={listening}
+            activeWordIndex={listening ? activeIndex : -1}
+            bodyWordStart={readModel.bodyStart}
+            accent={accent}
+            onBlockLayout={(i, y) => {
+              blockYs.current[i] = y;
+            }}
+          />
+        </View>
 
         {/* Key points */}
         {lesson.keyPoints.length > 0 && (
