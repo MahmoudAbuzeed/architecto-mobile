@@ -29,6 +29,8 @@ export type RootStackParamList = {
     | undefined;
   DailyQuiz: { topicSlug?: string } | undefined;
   TrackPicker: { context: 'first-pick' | 'switch' | 'start' };
+  // In-app purchase paywall. `source` is optional analytics context only.
+  Paywall: { source?: 'topic' | 'voice' | 'lesson' | 'interceptor' } | undefined;
 };
 
 export type TabParamList = {

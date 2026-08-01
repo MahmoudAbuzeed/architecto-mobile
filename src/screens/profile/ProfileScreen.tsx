@@ -1,11 +1,14 @@
 import React from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   AppText,
   Card,
   Chip,
   MonoText,
+  PrimaryButton,
   Screen,
 } from '@/components/Primitives';
 import { ReminderSettingsCard } from '@/components/ReminderSettingsCard';
@@ -18,7 +21,17 @@ import { ARABIC_DIALECTS } from '@/lib/languages';
 import { useAuthStore, selectIsPro } from '@/store/auth.store';
 import { useSettingsStore } from '@/store/settings.store';
 import { showDialog } from '@/store/ui.store';
-import { APP_VERSION, PRIVACY_URL, SUPPORT_EMAIL, TERMS_URL } from '@/services/env';
+import * as purchases from '@/lib/purchases';
+import {
+  APP_VERSION,
+  MANAGE_SUBSCRIPTION_URL,
+  PRIVACY_URL,
+  SUPPORT_EMAIL,
+  TERMS_URL,
+} from '@/services/env';
+import type { RootStackParamList } from '@/app/navigation/types';
+
+type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const THEME_MODES: ReadonlyArray<{ mode: ThemeMode; label: string }> = [
   { mode: 'dark', label: 'Dark' },
@@ -28,10 +41,15 @@ const THEME_MODES: ReadonlyArray<{ mode: ThemeMode; label: string }> = [
 
 export function ProfileScreen() {
   const theme = useTheme();
+  const navigation = useNavigation<Nav>();
   const user = useAuthStore((s) => s.user);
   const isPro = useAuthStore((s) => selectIsPro(s));
   const logout = useAuthStore((s) => s.logout);
   const deleteAccount = useAuthStore((s) => s.deleteAccount);
+  const reconcilePro = useAuthStore((s) => s.reconcilePro);
+  // In-app-purchase controls only appear when the RevenueCat SDK is linked +
+  // keyed; otherwise Profile is unchanged (the PRO/FREE pill still shows).
+  const iapAvailable = purchases.isAvailable();
   const contentLanguage = useSettingsStore((s) => s.contentLanguage);
   const setContentLanguage = useSettingsStore((s) => s.setContentLanguage);
   const themeMode = useThemeStore((s) => s.mode);
@@ -39,6 +57,32 @@ export function ProfileScreen() {
 
   const openUrl = (url: string) => {
     void Linking.openURL(url).catch(() => undefined);
+  };
+
+  const onRestore = async () => {
+    const { isProEntitled } = await purchases.restorePurchases();
+    if (isProEntitled) {
+      await reconcilePro();
+      showDialog({
+        title: strings.profile.restoredTitle,
+        message: strings.profile.restoredBody,
+        buttons: [{ text: strings.modals.ok, style: 'default' }],
+      });
+    } else {
+      showDialog({
+        title: strings.profile.restoreNoneTitle,
+        message: strings.profile.restoreNoneBody,
+        buttons: [{ text: strings.modals.ok, style: 'default' }],
+      });
+    }
+  };
+
+  const onManage = async () => {
+    try {
+      await purchases.showManageSubscriptions();
+    } catch {
+      openUrl(MANAGE_SUBSCRIPTION_URL);
+    }
   };
 
   const confirmDelete = () => {
@@ -112,6 +156,42 @@ export function ProfileScreen() {
             </View>
           </Card>
         </Animated.View>
+
+        {/* Subscription (only when in-app purchases are available) */}
+        {iapAvailable && (
+          <Animated.View entering={FadeInUp.delay(60)}>
+            <Card style={styles.sectionCard}>
+              <AppText style={styles.sectionLabel}>
+                {strings.profile.billingSection}
+              </AppText>
+              {!isPro && (
+                <PrimaryButton
+                  label={strings.profile.goPro}
+                  onPress={() => navigation.navigate('Paywall')}
+                  height={46}
+                />
+              )}
+              {isPro && (
+                <Pressable
+                  onPress={() => void onManage()}
+                  style={({ pressed }) => [styles.linkRow, { opacity: pressed ? 0.6 : 1 }]}
+                >
+                  <AppText secondary style={styles.linkText}>
+                    {strings.profile.manageSubscription}
+                  </AppText>
+                </Pressable>
+              )}
+              <Pressable
+                onPress={() => void onRestore()}
+                style={({ pressed }) => [styles.linkRow, { opacity: pressed ? 0.6 : 1 }]}
+              >
+                <AppText secondary style={styles.linkText}>
+                  {strings.profile.restorePurchases}
+                </AppText>
+              </Pressable>
+            </Card>
+          </Animated.View>
+        )}
 
         {/* Content language */}
         <Animated.View entering={FadeInUp.delay(80)}>

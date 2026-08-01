@@ -10,6 +10,7 @@ import { CelebrationScreen } from '@/screens/celebration/CelebrationScreen';
 import { TrackPickerScreen } from '@/screens/learn/TrackPickerScreen';
 import { DailyLessonScreen } from '@/screens/daily/DailyLessonScreen';
 import { DailyQuizScreen } from '@/screens/daily/DailyQuizScreen';
+import { PaywallScreen } from '@/screens/paywall/PaywallScreen';
 import type { RootStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -71,6 +72,16 @@ export function RootNavigator() {
             component={TrackPickerScreen}
             // Same card-not-modal presentation as the rep group (see above),
             // but a picker is safely dismissible — gestures stay on.
+            options={{
+              presentation: 'card',
+              animation: 'slide_from_bottom',
+              gestureEnabled: true,
+            }}
+          />
+          {/* Paywall: dismissible card (same pattern as TrackPicker). */}
+          <Stack.Screen
+            name="Paywall"
+            component={PaywallScreen}
             options={{
               presentation: 'card',
               animation: 'slide_from_bottom',

@@ -30,3 +30,19 @@ export const SUPPORT_EMAIL = 'support@architecto.app';
 
 /** Marketing version shown in Profile. Keep in sync with iOS MARKETING_VERSION. */
 export const APP_VERSION = '1.0';
+
+// RevenueCat publishable SDK keys (safe to ship in the client). Sandbox and
+// production share the same key — the environment follows the signed-in App
+// Store account. Fill these from the RevenueCat dashboard; while empty the IAP
+// layer stays disabled and the app falls back to the soft paywall dialog.
+// Android stays '' until the Play integration is set up.
+export const REVENUECAT_IOS_KEY = '';
+export const REVENUECAT_ANDROID_KEY = '';
+
+/** Deep link to the OS subscription-management screen (Manage subscription). */
+export const MANAGE_SUBSCRIPTION_URL =
+  Platform.select({
+    ios: 'https://apps.apple.com/account/subscriptions',
+    android: 'https://play.google.com/store/account/subscriptions',
+    default: 'https://apps.apple.com/account/subscriptions',
+  }) ?? 'https://apps.apple.com/account/subscriptions';

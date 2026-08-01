@@ -8,7 +8,7 @@ import { FlameOutlineIcon, PlayIcon } from './icons';
 import { useDailyStore } from '@/store/daily.store';
 import { useTracksStore } from '@/store/tracks.store';
 import { useAuthStore, selectIsPro } from '@/store/auth.store';
-import { useUiStore } from '@/store/ui.store';
+import { presentPaywall } from '@/lib/paywall';
 import { useSettingsStore } from '@/store/settings.store';
 import { useTheme } from '@/theme/useTheme';
 import { ELEVATED_FG } from '@/theme/tokens';
@@ -144,11 +144,7 @@ export function TodayLessonCard() {
       {/* Free users who finished today get one quiet "keep going" upsell. */}
       {completed && !isPro && (
         <Pressable
-          onPress={() =>
-            useUiStore
-              .getState()
-              .show({ type: 'paywall', message: strings.modals.paywallBody })
-          }
+          onPress={() => presentPaywall('lesson')}
           hitSlop={8}
           style={({ pressed }) => [styles.upsell, { opacity: pressed ? 0.6 : 1 }]}
         >

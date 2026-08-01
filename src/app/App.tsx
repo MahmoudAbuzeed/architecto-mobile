@@ -91,6 +91,8 @@ export default function App() {
     const unwire = wireNotificationEvents();
     const sub = AppState.addEventListener('change', (state) => {
       if (state === 'active' && useAuthStore.getState().isAuthenticated) {
+        // Re-check Pro (catches a RevenueCat webhook that landed while away).
+        void useAuthStore.getState().loadUser();
         void useDailyStore.getState().fetch();
         void syncDailyReminder();
       }

@@ -17,7 +17,8 @@ import { useDailyStore } from '@/store/daily.store';
 import { useDailyDose } from '@/hooks/useDailyDose';
 import { useSettingsStore } from '@/store/settings.store';
 import { useAuthStore, selectIsPro } from '@/store/auth.store';
-import { useUiStore, showDialog } from '@/store/ui.store';
+import { showDialog } from '@/store/ui.store';
+import { presentPaywall } from '@/lib/paywall';
 import { useTheme } from '@/theme/useTheme';
 import { strings } from '@/i18n/strings';
 import { journeyCopyFor } from '@/i18n/journey-copy';
@@ -115,9 +116,7 @@ export function CategoryTopicsScreen() {
         });
         return;
       case 'proGated':
-        useUiStore
-          .getState()
-          .show({ type: 'paywall', message: strings.modals.paywallBody });
+        presentPaywall('topic');
         return;
       case 'locked': {
         const prereqs = topic.missingPrerequisites

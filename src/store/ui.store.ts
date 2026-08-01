@@ -69,7 +69,13 @@ export function routeErrorToModal(
   const { show } = useUiStore.getState();
 
   if (error.code === 'UPGRADE_REQUIRED') {
-    show({ type: 'paywall', message: error.message });
+    // Prefer the real paywall screen (in-app purchase) when the SDK is linked;
+    // fall back to the soft dialog. Lazy require avoids a store↔lib/nav cycle.
+    try {
+      require('@/lib/paywall').presentPaywall('interceptor', error.message);
+    } catch {
+      show({ type: 'paywall', message: error.message });
+    }
     return;
   }
   if (error.code === 'AI_UNAVAILABLE') {

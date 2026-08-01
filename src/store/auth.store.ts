@@ -23,6 +23,8 @@ interface AuthState {
   loginWithGoogle: () => Promise<void>;
   loginWithApple: () => Promise<void>;
   loadUser: () => Promise<void>;
+  /** Poll /auth/me until the backend reflects Pro (after an IAP purchase). */
+  reconcilePro: () => Promise<boolean>;
   logout: () => void;
   deleteAccount: () => Promise<void>;
   clearError: () => void;
@@ -164,6 +166,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
+  reconcilePro: async () => {
+    // The purchase is done in StoreKit, but Pro is server-driven — poll
+    // /auth/me with backoff until the RevenueCat→backend webhook flips the
+    // subscription row (~30s budget). Returns true as soon as Pro is seen.
+    const delays = [0, 1500, 3000, 5000, 8000, 12000];
+    for (const d of delays) {
+      if (d) await new Promise<void>((r) => setTimeout(() => r(), d));
+      await get().loadUser();
+      if (selectIsPro(get())) return true;
+    }
+    return false; // webhook lagging — App foreground loadUser() will catch up
+  },
+
   logout: () => {
     tokenStorage.clear();
     GoogleSignin.signOut().catch(() => undefined);
@@ -214,5 +229,24 @@ tokenStorage.subscribe(() => {
     useAuthStore.getState().isAuthenticated
   ) {
     useAuthStore.setState({ user: null, isAuthenticated: false });
+  }
+});
+
+// Keep RevenueCat's identity in sync with the signed-in user. Fires on every
+// path that sets `user` (login/register/verifyOtp/google/apple/bootstrap/
+// loadUser) without editing each. appUserID = backend user.id so the
+// RevenueCat→backend webhook maps a purchase to the right account. Lazy require
+// avoids a store↔lib cycle and tolerates the SDK being unlinked.
+let lastRcUserId: string | null = null;
+useAuthStore.subscribe((state) => {
+  const id = state.user?.id ?? null;
+  if (id === lastRcUserId) return;
+  lastRcUserId = id;
+  try {
+    const purchases = require('@/lib/purchases');
+    if (id) void purchases.syncIdentity(id);
+    else void purchases.logOut();
+  } catch {
+    // Purchases SDK unlinked — no-op.
   }
 });

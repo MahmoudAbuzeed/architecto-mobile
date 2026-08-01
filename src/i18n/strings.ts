@@ -252,6 +252,15 @@ export const strings = {
       'A gentle nudge to take your five minutes and keep the streak alive.',
     remindersToggle: 'Daily reminder',
     reminderHour: 'Remind me at',
+    // Subscription section
+    billingSection: 'Subscription',
+    goPro: 'Go Pro',
+    restorePurchases: 'Restore purchases',
+    manageSubscription: 'Manage subscription',
+    restoredTitle: 'Restored',
+    restoredBody: 'Your Pro access has been restored.',
+    restoreNoneTitle: 'Nothing to restore',
+    restoreNoneBody: 'No active purchases were found on this account.',
   },
   modals: {
     paywallTitle: 'That’s a Pro move.',
@@ -263,6 +272,31 @@ export const strings = {
     genericTitle: 'That didn’t work.',
     ok: 'OK',
     retryLater: 'Got it',
+  },
+  paywall: {
+    kicker: 'PRO',
+    monthly: 'Monthly',
+    annual: 'Annual',
+    perMonth: '/mo',
+    perYear: '/yr',
+    saveBadge: (pct: number) => `SAVE ${pct}%`,
+    cta: 'Unlock Pro',
+    activating: 'Activating your Pro access…',
+    loadingPrice: '—',
+    restore: 'Restore purchases',
+    purchaseError: 'That purchase didn’t go through. Please try again.',
+    restoreNone: 'Nothing to restore on this account.',
+    pending:
+      'Purchase received — Pro unlocks automatically, usually within a minute.',
+    // Shown when the store/SDK isn’t available (fallback, never a dead-end).
+    unavailableBody: 'Pro unlocks here automatically when your plan is active.',
+    autoRenewDisclosure:
+      'Subscriptions auto-renew until cancelled. Manage or cancel anytime in your App Store account settings.',
+    termsPrefix: 'By subscribing you agree to our ',
+    termsLink: 'Terms',
+    and: ' and ',
+    privacyLink: 'Privacy Policy',
+    period: '.',
   },
   tabs: {
     home: 'Home',
