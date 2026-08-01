@@ -32,6 +32,7 @@ import { useTheme } from '@/theme/useTheme';
 import { strings } from '@/i18n/strings';
 import { GENERATING_QUIPS } from '@/lib/quips';
 import { isArabic } from '@/lib/languages';
+import { isAppError } from '@/lib/api-error';
 import type { DailySubmitResponse } from '@/types';
 import type { RootStackParamList } from '@/app/navigation/types';
 
@@ -86,7 +87,11 @@ export function DailyQuizScreen() {
       const res = await submit(answers);
       setPhase({ kind: 'results', res });
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Submit failed');
+      // The api layer rejects with a plain AppError (not an Error instance), so
+      // surface its real message instead of a generic "Submit failed".
+      setError(
+        isAppError(e) || e instanceof Error ? e.message : 'Submit failed',
+      );
       setPhase({ kind: 'answering', index: questions.length - 1 });
     }
   }, [answers, submit, questions.length]);

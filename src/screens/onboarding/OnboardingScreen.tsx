@@ -33,7 +33,7 @@ import { AppleSignInButton } from '@/components/AppleSignInButton';
 import { useAuthStore } from '@/store/auth.store';
 import { useTheme } from '@/theme/useTheme';
 import { radius } from '@/theme/tokens';
-import { mono, wordmark } from '@/theme/typography';
+import { wordmark } from '@/theme/typography';
 import { strings } from '@/i18n/strings';
 import type { RootStackParamList } from '@/app/navigation/types';
 
@@ -176,10 +176,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headline: {
-    fontFamily: mono.semiBold,
-    fontSize: 27,
-    lineHeight: 34,
-    letterSpacing: -0.5,
+    // System bold sans — matches the app's other titles (lesson, Home), not
+    // the mono wordmark above it.
+    fontSize: 30,
+    fontWeight: '800',
+    lineHeight: 36,
+    letterSpacing: -0.6,
     textAlign: 'center',
   },
   subtitle: {

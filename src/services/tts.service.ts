@@ -12,6 +12,19 @@ import { fnv1a } from '@/lib/hash';
 const TTS_DIR = `${ReactNativeBlobUtil.fs.dirs.CacheDir}/tts`;
 const MAX_CACHED_FILES = 50;
 
+/**
+ * Thrown when the audio request comes back non-200, carrying the HTTP status
+ * and (when present) the server's human message — so the caller can tell apart
+ * "voice unavailable" (503), the free-tier daily cap (429), and generic
+ * failures, and show the right thing instead of failing silently.
+ */
+export class TtsError extends Error {
+  constructor(readonly status: number, readonly serverMessage?: string) {
+    super(`TTS request failed (${status})`);
+    this.name = 'TtsError';
+  }
+}
+
 async function ensureDir(): Promise<void> {
   const exists = await ReactNativeBlobUtil.fs.exists(TTS_DIR);
   if (!exists) await ReactNativeBlobUtil.fs.mkdir(TTS_DIR).catch(() => undefined);
@@ -57,8 +70,21 @@ export const ttsService = {
       );
     const status = res.info().status;
     if (status !== 200) {
+      // The error body was streamed to `file` (we used .config({ path })).
+      // Read it back for the server's message before discarding the file.
+      let serverMessage: string | undefined;
+      try {
+        const parsed = JSON.parse(await ReactNativeBlobUtil.fs.readFile(file, 'utf8'));
+        serverMessage = Array.isArray(parsed?.message)
+          ? parsed.message.join(' ')
+          : typeof parsed?.message === 'string'
+            ? parsed.message
+            : undefined;
+      } catch {
+        // No readable JSON body — status alone drives the message.
+      }
       await ReactNativeBlobUtil.fs.unlink(file).catch(() => undefined);
-      throw new Error(`TTS request failed (${status})`);
+      throw new TtsError(status, serverMessage);
     }
     void sweep();
     return file;

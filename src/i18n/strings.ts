@@ -6,7 +6,7 @@
 export const strings = {
   onboarding: {
     wordmark: 'ARCHITECTO',
-    headline: 'Master the answer.\nOut loud.',
+    headline: 'Five minutes a day.\nMaster every answer.',
     subtitle:
       'A five-minute rep with Archie, every day. Learn it, say it out loud, keep the streak — system design to behavioral.',
     chipStreaks: 'Daily streak',
@@ -92,7 +92,14 @@ export const strings = {
       'Archie is condensing today’s topic into five minutes. First time on a topic takes him a moment.',
     listen: 'Listen',
     pause: 'Pause',
+    voiceUnavailable: 'Voice isn’t available right now — you can still read the lesson.',
+    voiceLimit:
+      'Daily voice limit reached — you can still read, or go Pro for unlimited voice.',
+    voiceError: 'Couldn’t play the audio. Check your connection and try again.',
     keyPoints: 'KEY POINTS',
+    continueLabel: 'Continue',
+    back: 'Back',
+    swipeHint: 'Swipe or tap Continue to move through the lesson — or hit Listen to have it read aloud.',
     takeQuiz: 'Take the quiz →',
     reviewBanner: (score: number, total: number) =>
       `Done for today — you scored ${score}/${total}. Come back tomorrow.`,

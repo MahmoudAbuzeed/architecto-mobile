@@ -18,6 +18,7 @@ import { bodyBlockRanges, type BlockWordRange } from '@/lib/readAlong';
  */
 export function LessonMarkdown({
   body,
+  blocks: blocksProp,
   rtl,
   readAlong,
   activeWordIndex = -1,
@@ -25,19 +26,26 @@ export function LessonMarkdown({
   accent,
   onBlockLayout,
 }: {
-  body: string;
+  /** Raw markdown. Ignored when `blocks` is supplied. */
+  body?: string;
+  /** Pre-parsed blocks (a single section card passes its own slice). */
+  blocks?: MdBlock[];
   rtl?: boolean;
   /** Turn on per-word rendering (only while listening — it's heavier). */
   readAlong?: boolean;
   /** Global index of the word to highlight (-1 = none). */
   activeWordIndex?: number;
-  /** Global index of the body's first word (after title + hook). */
+  /** Global index of the first rendered word (after title + hook, or the
+   *  card's own offset when a section slice is passed). */
   bodyWordStart?: number;
   accent?: string;
   onBlockLayout?: (blockIndex: number, y: number) => void;
 }) {
   const theme = useTheme();
-  const blocks = useMemo(() => parseMarkdownBlocks(body), [body]);
+  const blocks = useMemo(
+    () => blocksProp ?? parseMarkdownBlocks(body ?? ''),
+    [blocksProp, body],
+  );
   const ranges = useMemo(
     () => (readAlong ? bodyBlockRanges(blocks, bodyWordStart) : []),
     [blocks, readAlong, bodyWordStart],
