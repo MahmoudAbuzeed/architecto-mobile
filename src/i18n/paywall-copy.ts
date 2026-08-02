@@ -14,6 +14,18 @@ export interface PaywallCopy {
   hero: string;
   subtitle: string;
   bullets: string[];
+  // Web-checkout upgrade flow. Only ever shown when the `payment_web_mobile`
+  // flag is ON (i.e. never during Apple review). All copy stays price-free and
+  // store-neutral — plans and prices live on the web.
+  webUpgradeTitle: string;
+  webUpgradeBody: string;
+  webUpgradeCta: string;
+  notNow: string;
+  profileUpgradeCta: string;
+  webOpenErrorTitle: string;
+  webOpenErrorBody: string;
+  proUnlockedTitle: string;
+  proUnlockedBody: string;
 }
 
 const EN: PaywallCopy = {
@@ -25,6 +37,16 @@ const EN: PaywallCopy = {
     'The full journey across all tracks',
     'Keep your streak compounding',
   ],
+  webUpgradeTitle: 'Go further with Pro.',
+  webUpgradeBody:
+    'Unlock every topic, unlimited listening, and the full journey. Continue on the web to see plans and subscribe.',
+  webUpgradeCta: 'Continue on the web',
+  notNow: 'Not now',
+  profileUpgradeCta: 'Upgrade to Pro',
+  webOpenErrorTitle: 'Couldn’t open the upgrade page.',
+  webOpenErrorBody: 'Check your connection and try again.',
+  proUnlockedTitle: 'Pro unlocked.',
+  proUnlockedBody: 'Everything is open. Go learn something.',
 };
 
 const AR: PaywallCopy = {
@@ -36,6 +58,16 @@ const AR: PaywallCopy = {
     'المسار الكامل عبر جميع المجالات',
     'حافظ على تصاعد إنجازك اليومي',
   ],
+  webUpgradeTitle: 'انطلق أبعد مع Pro.',
+  webUpgradeBody:
+    'افتح كل المواضيع والاستماع بلا حدود والمسار الكامل. تابع على الويب لعرض الخطط والاشتراك.',
+  webUpgradeCta: 'المتابعة على الويب',
+  notNow: 'ليس الآن',
+  profileUpgradeCta: 'الترقية إلى Pro',
+  webOpenErrorTitle: 'تعذّر فتح صفحة الترقية.',
+  webOpenErrorBody: 'تحقق من اتصالك وحاول مرة أخرى.',
+  proUnlockedTitle: 'تم تفعيل Pro.',
+  proUnlockedBody: 'كل شيء مفتوح الآن. هيا تعلّم شيئًا.',
 };
 
 export function paywallCopyFor(language: ContentLanguage): PaywallCopy {

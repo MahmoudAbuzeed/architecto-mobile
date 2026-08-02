@@ -20,7 +20,10 @@ import { initials } from '@/lib/format';
 import { ARABIC_DIALECTS } from '@/lib/languages';
 import { useAuthStore, selectIsPro } from '@/store/auth.store';
 import { useSettingsStore } from '@/store/settings.store';
+import { useFeatureFlagsStore, FLAGS } from '@/store/feature-flags.store';
 import { showDialog } from '@/store/ui.store';
+import { openWebUpgrade } from '@/lib/webCheckout';
+import { paywallCopyFor } from '@/i18n/paywall-copy';
 import * as purchases from '@/lib/purchases';
 import {
   APP_VERSION,
@@ -50,8 +53,15 @@ export function ProfileScreen() {
   // In-app-purchase controls only appear when the RevenueCat SDK is linked +
   // keyed; otherwise Profile is unchanged (the PRO/FREE pill still shows).
   const iapAvailable = purchases.isAvailable();
+  // Web-checkout upgrade path: only when both flags are on (fail-closed until
+  // loaded). Hidden entirely during Apple review (payment_web_mobile OFF).
+  const webUpgrade = useFeatureFlagsStore(
+    (s) =>
+      s.isEnabled(FLAGS.subscription) && s.isEnabled(FLAGS.webMobileCheckout),
+  );
   const contentLanguage = useSettingsStore((s) => s.contentLanguage);
   const setContentLanguage = useSettingsStore((s) => s.setContentLanguage);
+  const copy = paywallCopyFor(contentLanguage);
   const themeMode = useThemeStore((s) => s.mode);
   const setThemeMode = useThemeStore((s) => s.setMode);
 
@@ -156,6 +166,23 @@ export function ProfileScreen() {
             </View>
           </Card>
         </Animated.View>
+
+        {/* Upgrade on the web (free users, when the web-checkout flag is on and
+            in-app purchases are not the active path). Opens the system browser. */}
+        {webUpgrade && !iapAvailable && !isPro && (
+          <Animated.View entering={FadeInUp.delay(60)}>
+            <Card style={styles.sectionCard}>
+              <AppText style={styles.sectionLabel}>
+                {strings.profile.billingSection}
+              </AppText>
+              <PrimaryButton
+                label={copy.profileUpgradeCta}
+                onPress={() => void openWebUpgrade('profile')}
+                height={46}
+              />
+            </Card>
+          </Animated.View>
+        )}
 
         {/* Subscription (only when in-app purchases are available) */}
         {iapAvailable && (

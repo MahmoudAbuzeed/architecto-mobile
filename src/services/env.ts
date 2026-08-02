@@ -21,6 +21,13 @@ export const API_BASE_URL = __DEV__
     : DEV_API_URL
   : PROD_API_URL;
 
+// Web app origin for the checkout handoff (opened in the system browser). The
+// app never sells anything itself — the "Upgrade on the web" flow lands the
+// signed-in user on this host's /pricing. For end-to-end local testing point
+// this at the local Vite server (http://localhost:5173) and revert before
+// committing.
+export const WEB_APP_URL = 'https://www.archeticto.com';
+
 // Hosted legal pages + support channel, surfaced from Profile and the sign-in
 // screens. App Store review requires the privacy policy to be reachable both
 // in the app and via the App Store Connect metadata URL.
